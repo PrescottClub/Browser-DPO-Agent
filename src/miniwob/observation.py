@@ -4,7 +4,7 @@ from typing import Any, Dict, Sequence, Tuple
 import numpy as np
 from gymnasium import spaces
 
-from miniwob.constants import (
+from .constants import (
     ATTRIBUTE_MAX_LENGTH,
     FIELD_KEY_MAX_LENGTH,
     FIELD_VALUE_MAX_LENGTH,
@@ -13,8 +13,8 @@ from miniwob.constants import (
     TEXT_MAX_LENGTH,
     UTTERANCE_MAX_LENGTH,
 )
-from miniwob.dom import DOMElement
-from miniwob.spaces import Unicode
+from .dom import DOMElement
+from .spaces import Unicode
 
 
 Observation = Dict[str, Any]

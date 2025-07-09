@@ -1,7 +1,7 @@
 """Root `__init__` of the miniwob module."""
 import sys
 
-from miniwob.registration import register_miniwob_envs
+from .registration import register_miniwob_envs
 
 from .environment import MiniWoBEnvironment
 

@@ -16,8 +16,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from miniwob.action import Action, ActionSpaceConfig
-from miniwob.constants import (
+from .action import Action, ActionSpaceConfig
+from .constants import (
     FLIGHT_TASK_HEIGHT,
     FLIGHT_TASK_WIDTH,
     FLIGHT_WINDOW_HEIGHT,
@@ -27,18 +27,18 @@ from miniwob.constants import (
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
-from miniwob.dom import DOMElement
-from miniwob.fields import FieldExtractor, get_field_extractor
-from miniwob.http_server import start_http_server
-from miniwob.observation import (
+from .dom import DOMElement
+from .fields import FieldExtractor, get_field_extractor
+from .http_server import start_http_server
+from .observation import (
     Observation,
     create_empty_observation,
     create_empty_screenshot,
     create_observation,
 )
-from miniwob.reward import RewardProcessor, get_original_reward
-from miniwob.screenshot import get_screenshot, pil_to_numpy_array
-from miniwob.selenium_actions import execute_action_on_chromedriver
+from .reward import RewardProcessor, get_original_reward
+from .screenshot import get_screenshot, pil_to_numpy_array
+from .selenium_actions import execute_action_on_chromedriver
 
 
 HTML_DIR = pathlib.Path(__file__).parent / "html"

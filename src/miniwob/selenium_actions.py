@@ -5,7 +5,7 @@ from typing import Sequence, Tuple
 from selenium.webdriver import Chrome as ChromeDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
-from miniwob.action import (
+from .action import (
     COORDS_ACTIONS,
     ELEMENT_ACTIONS,
     FIELD_ACTIONS,
@@ -15,7 +15,7 @@ from miniwob.action import (
     ActionSpaceConfig,
     ActionTypes,
 )
-from miniwob.constants import WEBDRIVER_MODIFIER_KEYS, WEBDRIVER_SPECIAL_KEYS
+from .constants import WEBDRIVER_MODIFIER_KEYS, WEBDRIVER_SPECIAL_KEYS
 
 
 def _get_move_coords_action_chains(left: float, top: float, driver: ChromeDriver):

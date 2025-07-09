@@ -1,6 +1,6 @@
 """Environments for MiniWoB++ tasks."""
 
-from miniwob.environment import MiniWoBEnvironment
+from ..environment import MiniWoBEnvironment
 
 
 class AscendingNumbersEnv(MiniWoBEnvironment):

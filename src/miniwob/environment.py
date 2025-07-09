@@ -5,11 +5,11 @@ from typing import Any, Dict, Mapping, Optional, Tuple, Union
 import gymnasium as gym
 import numpy as np
 
-from miniwob.action import Action, ActionSpaceConfig, ActionTypes
-from miniwob.fields import FieldExtractor
-from miniwob.observation import Observation, get_observation_space
-from miniwob.reward import RewardProcessor
-from miniwob.selenium_instance import SeleniumInstance
+from .action import Action, ActionSpaceConfig, ActionTypes
+from .fields import FieldExtractor
+from .observation import Observation, get_observation_space
+from .reward import RewardProcessor
+from .selenium_instance import SeleniumInstance
 
 
 class MiniWoBEnvironment(gym.Env):

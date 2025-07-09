@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 import numpy as np
 from gymnasium import spaces
 
-from miniwob.constants import (
+from .constants import (
     DEFAULT_ALLOWED_KEYS,
     DEFAULT_ALLOWED_KEYS_MAC_OS,
     DEFAULT_SCROLL_AMOUNT,
@@ -15,7 +15,7 @@ from miniwob.constants import (
     MAX_REF,
     TYPING_MAX_LENGTH,
 )
-from miniwob.spaces import Unicode
+from .spaces import Unicode
 
 
 Action = Dict[str, Any]

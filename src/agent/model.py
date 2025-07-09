@@ -2,6 +2,7 @@
 
 import torch
 from peft import LoraConfig, get_peft_model
+from peft.peft_model import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments
 from trl import SFTTrainer
 from typing import Dict, Optional
@@ -68,4 +69,54 @@ class AgentModel:
 
         print("--- 开始SFT训练 ---")
         trainer.train()
-        print(f"--- SFT训练完成，Adapter已保存至 {adapter_path} ---") 
+        print(f"--- SFT训练完成，Adapter已保存至 {adapter_path} ---")
+
+    # 新增一个类方法，用于从已保存的adapter加载模型
+    @classmethod
+    def from_sft_adapter(cls, base_model_name: str, adapter_path: str, quantization_config: Optional[BitsAndBytesConfig] = None):
+        """
+        加载基础模型，并应用SFT阶段训练好的LoRA adapter权重。
+        """
+        # 先用和训练时相同的配置加载基础模型
+        model_instance = cls(model_name=base_model_name, quantization_config=quantization_config)
+        
+        # 加载LoRA adapter
+        print(f"正在从 {adapter_path} 加载LoRA adapter...")
+        model_instance.model = PeftModel.from_pretrained(model_instance.model, adapter_path)
+        print("Adapter加载并合并完毕。模型已准备好进行推理。")
+        
+        return model_instance
+
+    # 新增推理方法
+    def generate_completion(self, prompt: str) -> str:
+        """
+        根据给定的prompt，生成模型的响应（包含thought和action）。
+
+        Args:
+            prompt (str): 来自环境的任务指令。
+
+        Returns:
+            str: 模型生成的完整响应文本。
+        """
+        # 格式化输入
+        formatted_prompt = f"### Instruction:\n{prompt}\n\n### Response:\n"
+        
+        # 对输入进行分词
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.model.device)
+
+        # 生成响应
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=256,
+                do_sample=False,  # 使用贪心解码避免数值不稳定
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.eos_token_id,
+            )
+        
+        # 解码并清理输出
+        # 我们只取生成的部分，不包括输入的prompt
+        response_ids = outputs[0][inputs.input_ids.shape[1]:]
+        completion = self.tokenizer.decode(response_ids, skip_special_tokens=True)
+        
+        return completion.strip() 
