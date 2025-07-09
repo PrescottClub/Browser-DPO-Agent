@@ -4,7 +4,7 @@ import torch
 from peft import LoraConfig, get_peft_model
 from peft.peft_model import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments
-from trl import SFTTrainer
+from trl import SFTTrainer, DPOTrainer, DPOConfig
 from typing import Dict, Optional
 
 class AgentModel:
@@ -119,4 +119,44 @@ class AgentModel:
         response_ids = outputs[0][inputs.input_ids.shape[1]:]
         completion = self.tokenizer.decode(response_ids, skip_special_tokens=True)
         
-        return completion.strip() 
+        return completion.strip()
+
+    def train_dpo(self, dataset, dpo_adapter_path: str):
+        """
+        使用DPOTrainer对模型进行直接偏好优化。
+
+        Args:
+            dataset (Dataset): DPO偏好数据集 (包含prompt, chosen, rejected)。
+            dpo_adapter_path (str): 新的DPO LoRA adapter权重保存路径。
+        """
+        # 使用DPOConfig来配置训练参数，包括beta
+        dpo_config = DPOConfig(
+            output_dir=dpo_adapter_path,
+            per_device_train_batch_size=1,
+            gradient_accumulation_steps=2,
+            learning_rate=5e-6, # DPO的学习率通常需要更小
+            logging_steps=5,
+            max_steps=50, # DPO训练50步观察效果
+            save_strategy="steps",
+            save_steps=25,
+            report_to="none",
+            beta=0.1,  # DPO的beta参数
+            max_prompt_length=512,
+            max_length=1024,
+        )
+
+        # 确保模型参数可以训练
+        self.model.train()
+
+        # 注意：DPOTrainer不需要peft_config，因为它会从已有的PeftModel中自动处理
+        trainer = DPOTrainer(
+            model=self.model, # self.model此时应为已加载SFT adapter的PeftModel
+            ref_model=None, # TRL会自动创建参考模型
+            args=dpo_config,
+            train_dataset=dataset,
+            processing_class=self.tokenizer,  # 使用processing_class而不是tokenizer
+        )
+
+        print("--- 开始DPO训练 ---")
+        trainer.train()
+        print(f"--- DPO训练完成，Adapter已保存至 {dpo_adapter_path} ---")

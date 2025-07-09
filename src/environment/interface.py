@@ -17,7 +17,8 @@ ACTION_SPACE_CONFIG = ActionSpaceConfig(
 )
 
 # 注册 MiniWoB++ 环境
-# 由于我们是本地导入，所以不需要再调用 register_envs()
+from src.miniwob.registration import register_miniwob_envs
+register_miniwob_envs()
 
 class EnvironmentInterface:
     """
