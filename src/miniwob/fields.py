@@ -1,8 +1,8 @@
 """Task-specific key-value pairs extracted from the task instructions."""
+
 import json
 import re
 from typing import Callable, Dict, Sequence, Tuple, Union
-
 
 Fields = Sequence[Tuple[str, str]]
 
@@ -108,9 +108,9 @@ _add(
     r"Select 0*(\d*)/0*(\d*)/0*(\d*) as the date and hit submit\.",
     ["month", "day", "year"],
 )
-FIELD_EXTRACTORS["choose-date-nodelay"] = FIELD_EXTRACTORS[
-    "choose-date-easy"
-] = FIELD_EXTRACTORS["choose-date-medium"] = FIELD_EXTRACTORS["choose-date"]
+FIELD_EXTRACTORS["choose-date-nodelay"] = FIELD_EXTRACTORS["choose-date-easy"] = (
+    FIELD_EXTRACTORS["choose-date-medium"]
+) = FIELD_EXTRACTORS["choose-date"]
 
 # Select Qatar from the list and click Submit.
 # Select Konstanze from the list and click Submit.
@@ -412,9 +412,9 @@ _add(
     r'Switch between the tabs to find and click on the link "(.*)"\.',
     ["target"],
 )
-FIELD_EXTRACTORS["click-tab-2-easy"] = FIELD_EXTRACTORS[
-    "click-tab-2-medium"
-] = FIELD_EXTRACTORS["click-tab-2-hard"] = FIELD_EXTRACTORS["click-tab-2"]
+FIELD_EXTRACTORS["click-tab-2-easy"] = FIELD_EXTRACTORS["click-tab-2-medium"] = (
+    FIELD_EXTRACTORS["click-tab-2-hard"]
+) = FIELD_EXTRACTORS["click-tab-2"]
 
 _add("click-test", r"Click the button\.", [])
 
@@ -606,9 +606,9 @@ def _extract_email_inbox(utterance):
 
 for task, regex, keys in EMAIL_INBOX_PATTERNS:
     _add("email-inbox-" + task, regex, keys)
-FIELD_EXTRACTORS["email-inbox-star-reply"] = FIELD_EXTRACTORS[
-    "email-inbox"
-] = FIELD_EXTRACTORS["email-inbox-noscroll"] = _extract_email_inbox
+FIELD_EXTRACTORS["email-inbox-star-reply"] = FIELD_EXTRACTORS["email-inbox"] = (
+    FIELD_EXTRACTORS["email-inbox-noscroll"]
+) = _extract_email_inbox
 
 
 def _extract_email_inbox_nl(utterance):

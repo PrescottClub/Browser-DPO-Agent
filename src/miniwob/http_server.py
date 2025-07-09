@@ -1,8 +1,8 @@
 """HTTP server for serving environment HTMLs."""
+
 import functools
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-
 
 SERVER_SINGLETON = None
 

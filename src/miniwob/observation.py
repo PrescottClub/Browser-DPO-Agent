@@ -1,21 +1,15 @@
 """MiniWoB observation space."""
+
 from typing import Any, Dict, Sequence, Tuple
 
 import numpy as np
 from gymnasium import spaces
 
-from .constants import (
-    ATTRIBUTE_MAX_LENGTH,
-    FIELD_KEY_MAX_LENGTH,
-    FIELD_VALUE_MAX_LENGTH,
-    MAX_REF,
-    MIN_REF,
-    TEXT_MAX_LENGTH,
-    UTTERANCE_MAX_LENGTH,
-)
+from .constants import (ATTRIBUTE_MAX_LENGTH, FIELD_KEY_MAX_LENGTH,
+                        FIELD_VALUE_MAX_LENGTH, MAX_REF, MIN_REF,
+                        TEXT_MAX_LENGTH, UTTERANCE_MAX_LENGTH)
 from .dom import DOMElement
 from .spaces import Unicode
-
 
 Observation = Dict[str, Any]
 

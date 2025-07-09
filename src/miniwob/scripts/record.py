@@ -16,7 +16,6 @@ from typing import Any, Optional, Sequence
 
 from bottle import Bottle, FormsDict, request, response
 
-
 app = Bottle()
 
 

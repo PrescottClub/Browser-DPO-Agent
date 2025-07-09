@@ -1,4 +1,5 @@
 """Low-level interface with ChromDriver via Selenium."""
+
 import json
 import logging
 import pathlib
@@ -17,29 +18,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from .action import Action, ActionSpaceConfig
-from .constants import (
-    FLIGHT_TASK_HEIGHT,
-    FLIGHT_TASK_WIDTH,
-    FLIGHT_WINDOW_HEIGHT,
-    FLIGHT_WINDOW_WIDTH,
-    TASK_HEIGHT,
-    TASK_WIDTH,
-    WINDOW_HEIGHT,
-    WINDOW_WIDTH,
-)
+from .constants import (FLIGHT_TASK_HEIGHT, FLIGHT_TASK_WIDTH,
+                        FLIGHT_WINDOW_HEIGHT, FLIGHT_WINDOW_WIDTH, TASK_HEIGHT,
+                        TASK_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH)
 from .dom import DOMElement
 from .fields import FieldExtractor, get_field_extractor
 from .http_server import start_http_server
-from .observation import (
-    Observation,
-    create_empty_observation,
-    create_empty_screenshot,
-    create_observation,
-)
+from .observation import (Observation, create_empty_observation,
+                          create_empty_screenshot, create_observation)
 from .reward import RewardProcessor, get_original_reward
 from .screenshot import get_screenshot, pil_to_numpy_array
 from .selenium_actions import execute_action_on_chromedriver
-
 
 HTML_DIR = pathlib.Path(__file__).parent / "html"
 DEFAULT_BASE_URL = f"file://{HTML_DIR}/miniwob/"

@@ -48,6 +48,13 @@ dpo_test_output/
 *.sln
 *.sw?
 
+# MLflow experiment tracking
+mlruns/
+
+# Generated evaluation files  
+evaluation_summary.txt
+*.log
+
 # OS generated files
 .DS_Store
 .DS_Store?

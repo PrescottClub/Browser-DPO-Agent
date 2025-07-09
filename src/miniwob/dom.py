@@ -1,4 +1,5 @@
 """Encapsulation of the DOM element tree."""
+
 import re
 from typing import Any, Collection, Dict, Optional, Sequence, Tuple, Union
 

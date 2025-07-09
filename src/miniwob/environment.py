@@ -1,4 +1,5 @@
 """MiniWoB environment."""
+
 import logging
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 

@@ -20,6 +20,18 @@
     <a href="./LICENSE">
       <img src="https://img.shields.io/badge/许可-MIT-lightgrey?style=flat-square" alt="开源许可">
     </a>
+    <a href="./tests/">
+      <img src="https://img.shields.io/badge/测试-21%20passed-brightgreen?style=flat-square" alt="测试状态">
+    </a>
+    <a href="./start_mlflow_ui.py">
+      <img src="https://img.shields.io/badge/MLflow-实验追踪-blue?style=flat-square" alt="MLflow集成">
+    </a>
+    <a href="https://pytorch.org/">
+      <img src="https://img.shields.io/badge/PyTorch-2.5%2B-red?style=flat-square" alt="PyTorch版本">
+    </a>
+    <a href="./pyproject.toml">
+      <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square" alt="Python版本">
+    </a>
   </p>
 
   <p align="center">
@@ -67,44 +79,115 @@ DPO Trained (EF-DPO)       70.00%       +10.00%
 
 ## 🚀 快速开始
 
-### 1. 环境安装
+### 1. 环境准备
 
+**系统要求：**
+- Python 3.11+
+- NVIDIA GPU (推荐RTX 4060 8GB+)
+- CUDA 12.1+
+
+**安装Poetry (如果尚未安装)：**
+```bash
+# Windows (PowerShell)
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+# Linux/macOS
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+**克隆并安装：**
 ```bash
 # 克隆项目
 git clone https://github.com/your-repo/dpo-driver.git
 cd dpo-driver
 
-# 安装依赖
+# 安装依赖 (Poetry会自动创建虚拟环境)
 poetry install
+
+# 验证安装
+poetry run python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 ```
 
-### 2. SFT基线训练
+### 2. 验证环境
+
+```bash
+# 验证项目环境配置
+poetry run python scripts/00_verify_setup.py
+```
+
+### 3. SFT基线训练
 
 ```bash
 # 训练监督微调基线模型
 poetry run python scripts/01_sft_training.py
 ```
 
-### 3. 偏好数据收集
+### 4. 偏好数据收集
 
 ```bash
 # 收集环境反馈偏好数据
 poetry run python scripts/02_collect_preferences.py
 ```
 
-### 4. DPO强化训练
+### 5. DPO强化训练
 
 ```bash
 # 执行直接偏好优化
 poetry run python scripts/03_dpo_training.py
 ```
 
-### 5. 性能评估
+### 6. 性能评估
 
 ```bash
 # 对比评估SFT vs DPO性能
 poetry run python scripts/04_evaluate_agent.py
 ```
+
+### 完整训练流程
+
+| 步骤 | 脚本 | 作用 | 预期时间 | 输出 |
+|------|------|------|----------|------|
+| 0️⃣ | `00_verify_setup.py` | 环境验证 | 30秒 | 验证报告 |
+| 1️⃣ | `01_sft_training.py` | SFT基线训练 | 10-15分钟 | `models/sft_v1_adapter/` |
+| 2️⃣ | `02_collect_preferences.py` | 偏好数据收集 | 5-10分钟 | `data/preferences/dpo_v1_data.jsonl` |
+| 3️⃣ | `03_dpo_training.py` | DPO强化训练 | 5-8分钟 | `models/dpo_v1_adapter/` |
+| 4️⃣ | `04_evaluate_agent.py` | 性能评估 | 3-5分钟 | 性能对比报告 |
+
+**一键运行完整流程：**
+```bash
+# 按顺序执行所有步骤
+poetry run python scripts/00_verify_setup.py && poetry run python scripts/01_sft_training.py && poetry run python scripts/02_collect_preferences.py && poetry run python scripts/03_dpo_training.py && poetry run python scripts/04_evaluate_agent.py
+```
+
+## 📊 实验追踪与监控
+
+本项目集成了MLflow进行实验管理和结果可视化：
+
+### 启动MLflow UI
+```bash
+# 启动实验追踪界面
+poetry run python start_mlflow_ui.py
+
+# 在浏览器中访问：http://localhost:5000
+```
+
+### 清理缓存
+如需清理项目缓存文件：
+```bash
+# 清理Python缓存
+Get-ChildItem -Recurse -Directory "__pycache__" | Remove-Item -Recurse -Force
+
+# 清理pytest缓存  
+Remove-Item -Recurse -Force .pytest_cache -ErrorAction SilentlyContinue
+```
+
+### 实验管理
+- 🔬 **SFT实验**: 查看监督微调的损失曲线和模型性能
+- 🎯 **DPO实验**: 对比偏好优化前后的性能提升  
+- 📈 **评估结果**: 可视化不同模型在各任务上的成功率
+- 🔄 **参数对比**: 追踪不同配置下的实验结果
+
+每次运行训练脚本都会自动记录到MLflow，便于实验管理和结果复现。
 
 ## 🏗️ 系统架构
 
@@ -125,14 +208,27 @@ graph TB
 ```
 dpo-driver/
 ├── src/
-│   ├── agent/          # Agent核心模块
-│   ├── environment/    # 环境接口
-│   ├── miniwob/       # MiniWoB++集成
+│   ├── agent/          # Agent核心模块 (模型封装、DPO训练)
+│   ├── environment/    # 环境接口 (Selenium集成)
+│   ├── miniwob/       # MiniWoB++集成 (任务环境)
 │   └── utils/         # 工具函数
 ├── scripts/           # 训练和评估脚本
+│   ├── 00_verify_setup.py      # 环境验证
+│   ├── 01_sft_training.py      # SFT基线训练
+│   ├── 02_collect_preferences.py # 偏好数据收集
+│   ├── 03_dpo_training.py      # DPO强化训练
+│   └── 04_evaluate_agent.py    # 性能评估
 ├── data/             # 数据集
+│   ├── preferences/   # DPO偏好数据
+│   └── sft_golden_samples.jsonl # SFT训练数据
 ├── models/           # 模型存储
-└── docs/             # 文档
+│   ├── sft_v1_adapter/  # SFT基线模型
+│   └── dpo_v1_adapter/  # DPO强化模型
+├── tests/            # 测试代码
+├── README.md         # 项目文档
+├── LICENSE           # 开源许可
+├── CONTRIBUTING.md   # 贡献指南
+└── pyproject.toml    # 项目配置
 ```
 
 ## 🔧 核心技术
@@ -164,6 +260,33 @@ dpo-driver/
 1. **稀疏奖励有效性**: 证明了二元反馈足以驱动有效学习
 2. **探索-利用平衡**: DPO在已知策略附近进行精炼优化
 3. **收益递减现象**: 高基线下的边际改进成本递增
+
+## ⚙️ 配置管理
+
+项目使用 `config.yaml` 进行统一配置管理：
+
+### 核心配置项
+```yaml
+model:
+  base_model_name: "Qwen/Qwen2-7B-Instruct"  # 基础模型
+  
+training:
+  sft:
+    learning_rate: 2.0e-4    # SFT学习率
+    max_steps: 100           # SFT训练步数
+  dpo:
+    learning_rate: 5.0e-6    # DPO学习率 (通常更小)
+    beta: 0.1                # DPO beta参数
+    max_steps: 50            # DPO训练步数
+```
+
+### 自定义配置
+```bash
+# 使用自定义配置文件
+poetry run python scripts/01_sft_training.py --config_path my_config.yaml
+```
+
+配置文件支持热修改，无需重新安装依赖。
 
 ## 🛠️ 高级用法
 

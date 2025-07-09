@@ -1,20 +1,14 @@
 """Methods that execute actions in Selenium."""
+
 import logging
 from typing import Sequence, Tuple
 
 from selenium.webdriver import Chrome as ChromeDriver
 from selenium.webdriver.common.action_chains import ActionChains
 
-from .action import (
-    COORDS_ACTIONS,
-    ELEMENT_ACTIONS,
-    FIELD_ACTIONS,
-    SCROLL_ACTIONS,
-    TEXT_ACTIONS,
-    Action,
-    ActionSpaceConfig,
-    ActionTypes,
-)
+from .action import (COORDS_ACTIONS, ELEMENT_ACTIONS, FIELD_ACTIONS,
+                     SCROLL_ACTIONS, TEXT_ACTIONS, Action, ActionSpaceConfig,
+                     ActionTypes)
 from .constants import WEBDRIVER_MODIFIER_KEYS, WEBDRIVER_SPECIAL_KEYS
 
 

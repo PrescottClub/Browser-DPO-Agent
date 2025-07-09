@@ -1,11 +1,11 @@
 """Custom spaces for MiniWoB++."""
+
 from typing import Any
 
 import numpy as np
 from gymnasium.spaces import Box, Text
 from gymnasium.spaces.utils import flatdim, flatten, flatten_space, unflatten
 from numpy.typing import NDArray
-
 
 MAX_UNICODE_CODEPOINT = 0x10FFFF
 

@@ -1,4 +1,5 @@
 """Screenshot utilities."""
+
 import json
 from io import BytesIO
 

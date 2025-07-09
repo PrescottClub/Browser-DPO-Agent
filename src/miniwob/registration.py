@@ -1,4 +1,5 @@
 """Gymnasium environment registration."""
+
 from gymnasium.envs.registration import register
 
 

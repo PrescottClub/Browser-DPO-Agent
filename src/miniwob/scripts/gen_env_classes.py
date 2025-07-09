@@ -8,7 +8,6 @@ from typing import Mapping, Sequence
 import gymnasium
 from gymnasium.envs.registration import parse_env_id
 
-
 CLASS_TEMPLATE = """
 class {camel_name}Env(MiniWoBEnvironment):
     \"\"\"

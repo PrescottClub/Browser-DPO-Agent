@@ -1,4 +1,5 @@
 """MiniWoB action space."""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Tuple
@@ -6,17 +7,10 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 import numpy as np
 from gymnasium import spaces
 
-from .constants import (
-    DEFAULT_ALLOWED_KEYS,
-    DEFAULT_ALLOWED_KEYS_MAC_OS,
-    DEFAULT_SCROLL_AMOUNT,
-    DEFAULT_SCROLL_TIME,
-    MAX_FIELDS,
-    MAX_REF,
-    TYPING_MAX_LENGTH,
-)
+from .constants import (DEFAULT_ALLOWED_KEYS, DEFAULT_ALLOWED_KEYS_MAC_OS,
+                        DEFAULT_SCROLL_AMOUNT, DEFAULT_SCROLL_TIME, MAX_FIELDS,
+                        MAX_REF, TYPING_MAX_LENGTH)
 from .spaces import Unicode
-
 
 Action = Dict[str, Any]
 

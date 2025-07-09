@@ -1,6 +1,6 @@
 """Constants for the environment and spaces."""
-import itertools
 
+import itertools
 
 ASCII_CHARSET = "".join(chr(x) for x in range(32, 127))
 UTTERANCE_MAX_LENGTH = 256

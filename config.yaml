@@ -1,2 +1,29 @@
-# DPO-Driver V1.0 Configuration File
-# All project settings, paths, and hyperparameters will be managed here. 
+# DPO-Driver V1.0 - Central Configuration
+model:
+  base_model_name: "Qwen/Qwen2-7B-Instruct"
+  # quantization_config (future use)
+  
+paths:
+  sft_data: "data/sft_golden_samples.jsonl"
+  preference_data: "data/preferences/dpo_v1_data.jsonl"
+  sft_adapter_path: "./models/sft_v1_adapter"
+  dpo_adapter_path: "./models/dpo_v1_adapter"
+
+training:
+  sft:
+    learning_rate: 2.0e-4
+    max_steps: 100
+    batch_size: 1
+    grad_accumulation_steps: 4
+  dpo:
+    learning_rate: 5.0e-6
+    max_steps: 50
+    batch_size: 1
+    grad_accumulation_steps: 2
+    beta: 0.1
+
+evaluation:
+  num_episodes_per_task: 10
+  tasks:
+    - "miniwob/click-button-v1"
+    - "miniwob/fill-form-v1"
