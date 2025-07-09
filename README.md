@@ -1,71 +1,107 @@
-# DPO-Driver: Web Automation Agent via Direct Preference Optimization
-
-[![Status](https://img.shields.io/badge/status-Phase%200%20Complete-brightgreen)](./DEVELOPMENT_GUIDE.md)
-[![Model](https://img.shields.io/badge/model-Qwen2--7B-blue)](https://huggingface.co/Qwen/Qwen2-7B-Instruct)
-[![Environment](https://img.shields.io/badge/environment-MiniWoB++-orange)]()
-[![Framework](https://img.shields.io/badge/framework-Poetry%20%7C%20PyTorch%20%7C%20TRL-violet)](./pyproject.toml)
-
-**DPO-Driver is a research project to build a highly capable web automation agent by fine-tuning a Large Language Model (Qwen2-7B) using Direct Preference Optimization (DPO).**
-
-This project strictly follows the technical specifications and development plan outlined in the [**DEVELOPMENT_GUIDE.md**](./DEVELOPMENT_GUIDE.md).
+<div align="center">
+  <a href="https://github.com/your-repo/browser-dpo-agent">
+    <img src="https://path-to-your/awesome-logo.png" alt="Browser-DPO-Agent Logo" width="150">
+  </a>
+  <h1 align="center">Browser-DPO-Agent</h1>
+  <p align="center">
+    <strong>一个基于直接偏好优化（DPO）的、能够自主学习并执行复杂浏览器任务的AI智能体</strong>
+    <br />
+    <br />
+    <a href="./scripts/01_sft_training.py">
+      <img src="https://img.shields.io/badge/模型训练-SFT%20%7C%20DPO-9cf" alt="模型训练">
+    </a>
+    <a href="./pyproject.toml">
+      <img src="https://img.shields.io/badge/环境-Poetry-blueviolet" alt="环境依赖">
+    </a>
+    <a href="https://github.com/your-repo/browser-dpo-agent/graphs/commit-activity">
+      <img src="https://img.shields.io/badge/状态-活跃开发-brightgreen" alt="项目状态">
+    </a>
+    <a href="./LICENSE">
+      <img src="https://img.shields.io/badge/许可-MIT-lightgrey" alt="开源许可">
+    </a>
+  </p>
+</div>
 
 ---
 
-### Core Principles
+**Browser-DPO-Agent** 不仅仅是一个浏览器自动化工具，它是一个具备**自主决策能力**的AI智能体。我们通过创新的 **SFT + DPO** 混合训练模式，使大语言模型（LLM）能够在真实、复杂的网页环境中，像人类一样“思考”和“选择”，最终完成指定任务。
 
-1.  **Risk-First:** Always prioritize solving the highest-risk technical challenges first.
-2.  **Keep It Simple (KISS):** V1.0 focuses on validating the core methodology, not building a complex system.
-3.  **Iterative Loop:** Each development phase must form a testable, verifiable closed loop. Make it work, then make it right.
+## 核心理念：从“指令执行”到“决策智能”
 
-### System Architecture
+传统的Web Agent依赖于精确的指令和CSS选择器，一旦页面结构发生变化或遇到预期外的状况，它们便束手无策。我们认为，真正的智能体应当具备适应性和决策能力。
 
-The system follows a "brain-body" separation design:
+- **`SFT` (监督微调)**: 我们首先通过高质量的 `(指令, "思考过程", 动作)` 数据集对模型进行微调，让它掌握基础的浏览器操作语言和“思考-行动”模式。这是智能体学习“说”和“做”的阶段。
+- **`DPO` (直接偏好优化)**: 这是我们实现“决策智能”的关键。我们为模型提供包含 `(指令, 胜利动作, 失败动作)` 的偏好对，让它在多种可能性中，学习**选择更优、更高效的路径**。这赋予了模型在模糊和不确定场景下的决策能力。
 
--   **Agent (`src/agent/`):** The "brain." It loads the Qwen2 model and encapsulates SFT and DPO training logic.
--   **Environment (`src/environment/`):** The "body." It handles all interactions with the MiniWoB++ simulation environment, translating abstract actions into concrete Selenium executions.
--   **Scripts (`scripts/`):** The execution layer, orchestrating training, evaluation, and data collection processes.
+## ✨ 特性
 
-### Project Status
+- **🧠 SFT+DPO混合训练**: 完美结合指令遵循与决策优化，打造更聪明的智能体。
+- **🌐 端到端工作流**: 提供从数据准备、模型训练到环境交互的完整解决方案。
+- **🔌 模块化与可扩展**: 基于`transformers`和`PEFT`，轻松更换模型、扩展动作集。
+- **🎯 面向真实世界**: 专为解决复杂、动态的真实网页任务而设计。
 
-**Phase 0: Risk Mitigation & Environment Validation - ✅ COMPLETE**
+## 🚀 快速开始
 
--   [x] Project structure and dependencies initialized.
--   [x] `EnvironmentInterface` for MiniWoB++ is functional.
--   [x] **DPO Pressure Test Passed:** Successfully ran a DPO training step with the Qwen2-7B model on an 8GB VRAM GPU (RTX 4060) **without quantization**. The core hardware risk is fully mitigated.
+### 1. 环境准备
 
-**Next Up: Phase 1 - SFT Baseline Loop**
+使用 [Poetry](https://python-poetry.org/) 管理项目依赖。
 
-### Getting Started
+```bash
+# 克隆仓库
+git clone https://github.com/your-repo/browser-dpo-agent.git
+cd browser-dpo-agent
 
-1.  **Configure Poetry:**
-    If you want the virtual environment to be created in the project directory, run:
-    ```bash
-    poetry config virtualenvs.in-project true
-    ```
+# 安装依赖
+poetry install
 
-2.  **Install Dependencies:**
-    This project uses [Poetry](https://python-poetry.org/) for dependency management.
-    ```bash
-    poetry install
-    ```
-    *Note: The installation will set up a local `.venv` folder for the environment.*
+# （可选）配置Poetry在项目内创建虚拟环境
+poetry config virtualenvs.in-project true
+```
 
-3.  **Run Tests:**
-    To verify the environment setup:
-    ```bash
-    # Verify CUDA and PyTorch
-    poetry run python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+### 2. SFT基线模型训练
 
-    # Run the environment unit test
-    poetry run pytest
-    ```
+这是Agent学习基础操作的第一步。
 
-### Usage
+```bash
+# 执行SFT训练
+poetry run python scripts/01_sft_training.py
+```
+训练完成后，一个经过LoRA微调的adapter将保存在`./models/sft_v1_adapter/`。
 
-The `scripts/` directory contains the main execution scripts for different project phases:
+### 3. (即将到来) DPO偏好学习
+*此功能正在积极开发中。*
 
--   `00_dpo_pressure_test.py`: Validates hardware and environment setup (already passed).
--   `01_sft_training.py`: (Upcoming) Script to run Supervised Fine-Tuning.
--   `02_collect_preferences.py`: (Upcoming) Script to collect data for DPO.
--   `03_dpo_training.py`: (Upcoming) Script to run DPO training.
--   `04_evaluate_agent.py`: (Upcoming) Script to evaluate the final agent. 
+## 🏗️ 项目架构
+
+```
+Browser-DPO-Agent/
+├── data/
+│   ├── preferences/          # (DPO) 偏好数据集
+│   └── sft_golden_samples.jsonl # (SFT) 高质量指令样本
+├── models/
+│   └── sft_v1_adapter/       # 训练好的SFT LoRA adapter
+├── scripts/
+│   ├── 00_dpo_pressure_test.py # DPO压力测试脚本
+│   └── 01_sft_training.py      # SFT训练主脚本
+├── src/
+│   ├── agent/
+│   │   └── model.py          # Agent核心模型 (SFT+DPO)
+│   └── environment/
+│       └── interface.py      # 与浏览器环境的交互接口
+├── config.yaml               # 全局配置文件
+├── pyproject.toml            # Poetry依赖管理
+└── README.md                 # 项目文档
+```
+
+## 🤝 贡献
+
+我们热烈欢迎任何形式的社区贡献！无论是代码实现、文档改进还是问题反馈，都对我们至关重要。请参考我们的 [贡献指南](./CONTRIBUTING.md) 开始你的贡献之旅。
+
+## 📜 开源许可
+
+本项目基于 [MIT License](./LICENSE) 开源。
+
+---
+<p align="center">
+  <em>让智能体拥有真正的决策力。</em>
+</p> 
