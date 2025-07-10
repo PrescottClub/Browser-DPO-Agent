@@ -1,4 +1,9 @@
 # DPO-Driver V1.0 - Central Configuration
+
+# Project settings
+project:
+  seed: 42  # Random seed for reproducibility
+
 model:
   base_model_name: "Qwen/Qwen2-7B-Instruct"
   # quantization_config (future use)

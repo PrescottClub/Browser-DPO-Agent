@@ -9,12 +9,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
 
-import mlflow
 from tqdm import tqdm
 
 from src.agent.model import AgentModel
 from src.environment.interface import EnvironmentInterface
 from src.utils.config import load_config
+from src.utils.reproducibility import set_seed, get_seed_from_config
+from src.utils.checkpoint_manager import CheckpointManager
+from src.utils.mlflow_logger import MLflowLogger
 
 
 def evaluate_agent(agent: AgentModel, task_list: list, num_episodes: int) -> float:
@@ -68,46 +70,87 @@ def main():
     # 1. 加载配置
     config = load_config(args.config_path)
 
-    # 2. 启动一个新的MLflow Run用于记录本次评估
-    mlflow.set_experiment("DPO-Driver Evaluation")
-    with mlflow.start_run() as run:
-        print(f"--- 开始最终模型评估 (MLflow Run ID: {run.info.run_id}) ---")
+    # 2. 设置随机种子确保可复现性
+    seed = get_seed_from_config(config)
+    set_seed(seed)
 
-        # 3. 记录相关的配置
-        print("记录评估配置到MLflow...")
-        mlflow.log_param("sft_adapter_path", config.paths.sft_adapter_path)
-        mlflow.log_param("dpo_adapter_path", config.paths.dpo_adapter_path)
-        mlflow.log_params(config.evaluation.model_dump())
+    # 3. 使用深度MLflow集成
+    with MLflowLogger("DPO-Driver Evaluation", args.config_path) as mlflow_logger:
+        print(f"--- 开始最终模型评估 (MLflow Run ID: {mlflow_logger.get_run_id()}) ---")
 
-        # 4. 从配置中获取参数
+        # 4. 记录配置参数
+        mlflow_logger.log_config_params(config)
+
+        # 5. 从配置中获取参数
         model_name = config.model.base_model_name
-        sft_adapter_path = config.paths.sft_adapter_path + "/checkpoint-100"
-        dpo_adapter_path = config.paths.dpo_adapter_path
+        
+        # 使用checkpoint管理器获取checkpoint路径
+        checkpoint_manager = CheckpointManager("./models")
+        
+        # 获取SFT checkpoint路径
+        try:
+            sft_adapter_path = checkpoint_manager.get_checkpoint_path("sft")
+            print(f"✓ 从checkpoint管理器获取SFT路径: {sft_adapter_path}")
+        except (FileNotFoundError, KeyError, ValueError) as e:
+            print(f"⚠️ 无法从checkpoint管理器获取SFT路径: {e}")
+            print("回退到配置文件中的路径...")
+            sft_adapter_path = config.paths.sft_adapter_path + "/checkpoint-100"
+            print(f"使用回退路径: {sft_adapter_path}")
+        
+        # 获取DPO checkpoint路径
+        try:
+            dpo_adapter_path = checkpoint_manager.get_checkpoint_path("dpo")
+            print(f"✓ 从checkpoint管理器获取DPO路径: {dpo_adapter_path}")
+        except (FileNotFoundError, KeyError, ValueError) as e:
+            print(f"⚠️ 无法从checkpoint管理器获取DPO路径: {e}")
+            print("回退到配置文件中的路径...")
+            dpo_adapter_path = config.paths.dpo_adapter_path
+            print(f"使用回退路径: {dpo_adapter_path}")
+        
         eval_tasks = config.evaluation.tasks
         num_episodes_per_task = config.evaluation.num_episodes_per_task
 
-        # 5. 评估SFT基线模型
+        # 6. 评估SFT基线模型
         print("\n--- 正在评估SFT基线模型 ---")
-        sft_agent = AgentModel.from_sft_adapter(model_name, sft_adapter_path)
-        sft_success_rate = evaluate_agent(sft_agent, eval_tasks, num_episodes_per_task)
-        del sft_agent  # 释放显存
+        sft_agent = None
+        try:
+            sft_agent = AgentModel.from_sft_adapter(model_name, sft_adapter_path)
+            sft_success_rate = evaluate_agent(sft_agent, eval_tasks, num_episodes_per_task)
+        finally:
+            # 显式清理GPU显存和资源
+            if sft_agent is not None:
+                del sft_agent
+            # 强制清理GPU缓存
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                print("✓ GPU缓存已清理 (SFT评估后)")
 
-        # 6. 评估DPO强化模型
+        # 7. 评估DPO强化模型
         print("\n--- 正在评估DPO强化模型 ---")
-        dpo_agent = AgentModel.from_sft_adapter(model_name, dpo_adapter_path)
-        dpo_success_rate = evaluate_agent(dpo_agent, eval_tasks, num_episodes_per_task)
-        del dpo_agent  # 释放显存
+        dpo_agent = None
+        try:
+            dpo_agent = AgentModel.from_sft_adapter(model_name, dpo_adapter_path)
+            dpo_success_rate = evaluate_agent(dpo_agent, eval_tasks, num_episodes_per_task)
+        finally:
+            # 显式清理GPU显存和资源
+            if dpo_agent is not None:
+                del dpo_agent
+            # 强制清理GPU缓存
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                print("✓ GPU缓存已清理 (DPO评估后)")
 
-        # 7. 计算改进幅度
+        # 8. 计算改进幅度
         improvement = dpo_success_rate - sft_success_rate
 
-        # 8. 记录核心性能指标
+        # 9. 记录核心性能指标
         print("记录核心性能指标到MLflow...")
         mlflow.log_metric("sft_success_rate", sft_success_rate)
         mlflow.log_metric("dpo_success_rate", dpo_success_rate)
         mlflow.log_metric("absolute_improvement", improvement)
 
-        # 9. 打印最终结果报告
+        # 10. 打印最终结果报告
         report_text = f"""
 ==================================================
                      最终评估报告
@@ -120,7 +163,7 @@ DPO 强化模型平均成功率: {dpo_success_rate:.2%}
 """
         print(report_text)
 
-        # 10. 将文本报告作为artifact保存
+        # 11. 将文本报告作为artifact保存
         with open("evaluation_summary.txt", "w") as f:
             f.write(report_text)
         mlflow.log_artifact("evaluation_summary.txt")

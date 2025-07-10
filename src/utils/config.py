@@ -43,7 +43,12 @@ class EvalConfig(BaseModel):
     tasks: List[str]
 
 
+class ProjectConfig(BaseModel):
+    seed: int = Field(default=42, ge=0)
+
+
 class AppConfig(BaseModel):
+    project: ProjectConfig
     model: ModelConfig
     paths: PathsConfig
     training: TrainingConfig

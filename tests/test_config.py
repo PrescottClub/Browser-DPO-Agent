@@ -66,6 +66,7 @@ def test_load_custom_config():
     """测试加载自定义配置文件。"""
     # 创建临时配置文件
     test_config_data = {
+        "project": {"seed": 42},
         "model": {"base_model_name": "test-model"},
         "paths": {
             "sft_data": "test_sft.jsonl",

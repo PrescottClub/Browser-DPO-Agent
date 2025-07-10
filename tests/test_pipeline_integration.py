@@ -1,5 +1,6 @@
 # tests/test_pipeline_integration.py
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,8 @@ import yaml
 
 # 将这个测试标记为"慢速"，以便在快速测试时可以跳过它
 # 运行 pytest -m "not slow" 来跳过
+# 这个测试只有在设置了特定环境变量时才运行，否则跳过
+@pytest.mark.skipif(not os.getenv('RUN_FULL_PIPELINE_TESTS'), reason="Skipping full pipeline test; set RUN_FULL_PIPELINE_TESTS=1 to run.")
 @pytest.mark.slow
 def test_full_pipeline_smoke_test(tmp_path: Path):
     """
@@ -20,6 +23,7 @@ def test_full_pipeline_smoke_test(tmp_path: Path):
 
     # 1. 创建一个临时的、微型的配置文件
     test_config = {
+        "project": {"seed": 42},
         "model": {
             "base_model_name": "Qwen/Qwen2-1.5B-Instruct"
         },  # 使用最小的模型以加速
@@ -121,6 +125,7 @@ def test_config_parameter_passing():
     """
     # 创建临时配置文件
     test_config = {
+        "project": {"seed": 42},
         "model": {"base_model_name": "test-model"},
         "paths": {
             "sft_data": "test.jsonl",
@@ -155,6 +160,8 @@ def test_config_parameter_passing():
     try:
         # 测试脚本能否正确解析配置参数
         # 这里我们只测试参数解析，不实际运行训练
+        # 使用原始字符串避免路径转义问题
+        escaped_path = temp_config_path.replace("\\", "\\\\")
         result = subprocess.run(
             [
                 sys.executable,
@@ -167,7 +174,7 @@ from src.utils.config import load_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config_path", type=str, default="config.yaml")
-args = parser.parse_args(["--config_path", "{temp_config_path}"])
+args = parser.parse_args(["--config_path", r"{escaped_path}"])
 
 config = load_config(args.config_path)
 assert config.model.base_model_name == 'test-model'

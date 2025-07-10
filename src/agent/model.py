@@ -50,14 +50,14 @@ class AgentModel:
         Args:
             dataset (Dataset): 用于训练的数据集。
             adapter_path (str): LoRA adapter权重保存的路径。
-            config (dict, optional): 训练配置。如果None，使用默认值。
+            config (SFTTrainingConfig, optional): 训练配置。如果None，使用默认值。
         """
         # 从配置中获取参数，如果没有配置则使用默认值
         if config:
-            learning_rate = config.get('training.sft.learning_rate', 2e-4)
-            max_steps = config.get('training.sft.max_steps', 100)
-            batch_size = config.get('training.sft.batch_size', 1)
-            grad_accumulation_steps = config.get('training.sft.grad_accumulation_steps', 4)
+            learning_rate = config.learning_rate
+            max_steps = config.max_steps
+            batch_size = config.batch_size
+            grad_accumulation_steps = config.grad_accumulation_steps
         else:
             # 默认值（与原来保持一致）
             learning_rate = 2e-4
@@ -167,15 +167,15 @@ class AgentModel:
         Args:
             dataset (Dataset): DPO偏好数据集 (包含prompt, chosen, rejected)。
             dpo_adapter_path (str): 新的DPO LoRA adapter权重保存路径。
-            config (dict, optional): 训练配置。如果None，使用默认值。
+            config (DPOTrainingConfig, optional): 训练配置。如果None，使用默认值。
         """
         # 从配置中获取参数，如果没有配置则使用默认值
         if config:
-            learning_rate = config.get('training.dpo.learning_rate', 5e-6)
-            max_steps = config.get('training.dpo.max_steps', 50) 
-            batch_size = config.get('training.dpo.batch_size', 1)
-            grad_accumulation_steps = config.get('training.dpo.grad_accumulation_steps', 2)
-            beta = config.get('training.dpo.beta', 0.1)
+            learning_rate = config.learning_rate
+            max_steps = config.max_steps
+            batch_size = config.batch_size
+            grad_accumulation_steps = config.grad_accumulation_steps
+            beta = config.beta
         else:
             # 默认值（与原来保持一致）
             learning_rate = 5e-6
