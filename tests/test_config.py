@@ -20,7 +20,7 @@ def test_get_nested_value():
     """测试能否正确获取嵌套的配置值。"""
     config = get_config()
     learning_rate = config.training.dpo.learning_rate
-    assert learning_rate == 5.0e-6
+    assert learning_rate == 1.0e-6
 
 
 def test_config_validation():

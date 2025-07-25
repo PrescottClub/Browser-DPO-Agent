@@ -5,6 +5,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
+import psutil
 from pathlib import Path
 from typing import Dict, Any, Optional
 import mlflow
@@ -31,12 +33,15 @@ class MLflowLogger:
         self.config_path = config_path
         self.run = None
         self.run_id = None
+        self.start_time = None
+        self.stage_start_times = {}
         
     def __enter__(self):
         """进入上下文管理器，启动MLflow run并记录环境信息。"""
         mlflow.set_experiment(self.experiment_name)
         self.run = mlflow.start_run()
         self.run_id = self.run.info.run_id
+        self.start_time = time.time()
         
         print(f"[启动] 深度追踪的MLflow实验 (Run ID: {self.run_id})")
         
@@ -45,11 +50,21 @@ class MLflowLogger:
         self._log_system_info()
         self._log_config_file()
         self._log_dependencies()
+        self._log_initial_performance()
         
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """退出上下文管理器，结束MLflow run。"""
+        # 记录总执行时间
+        if self.start_time:
+            total_time = time.time() - self.start_time
+            mlflow.log_metric("total_execution_time_seconds", total_time)
+            print(f"[时间] 总执行时间: {total_time:.2f}s")
+        
+        # 记录最终性能状态
+        self._log_final_performance()
+        
         if exc_type is not None:
             # 如果有异常，记录异常信息
             mlflow.log_param("execution_status", "failed")
@@ -200,4 +215,125 @@ class MLflowLogger:
         Returns:
             str: 包含run ID的唯一路径
         """
-        return f"{base_path}/{self.run_id}" 
+        return f"{base_path}/{self.run_id}"
+    
+    def _log_initial_performance(self):
+        """记录初始系统性能状态。"""
+        try:
+            # CPU信息
+            mlflow.log_param("cpu_count", psutil.cpu_count())
+            mlflow.log_param("cpu_count_logical", psutil.cpu_count(logical=True))
+            
+            # 内存信息
+            memory = psutil.virtual_memory()
+            mlflow.log_param("total_memory_gb", round(memory.total / (1024**3), 2))
+            mlflow.log_metric("initial_memory_usage_percent", memory.percent)
+            mlflow.log_metric("initial_memory_available_gb", round(memory.available / (1024**3), 2))
+            
+            # 磁盘信息
+            disk = psutil.disk_usage('.')
+            mlflow.log_param("disk_total_gb", round(disk.total / (1024**3), 2))
+            mlflow.log_metric("initial_disk_usage_percent", round((disk.used / disk.total) * 100, 2))
+            
+            print("[性能] 初始系统性能状态已记录")
+            
+        except Exception as e:
+            print(f"[警告] 无法记录系统性能信息: {e}")
+    
+    def _log_final_performance(self):
+        """记录最终系统性能状态。"""
+        try:
+            # 内存信息
+            memory = psutil.virtual_memory()
+            mlflow.log_metric("final_memory_usage_percent", memory.percent)
+            mlflow.log_metric("final_memory_available_gb", round(memory.available / (1024**3), 2))
+            
+            # GPU信息（如果可用）
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    for i in range(torch.cuda.device_count()):
+                        memory_allocated = torch.cuda.memory_allocated(i) / (1024**3)
+                        memory_reserved = torch.cuda.memory_reserved(i) / (1024**3)
+                        mlflow.log_metric(f"gpu_{i}_memory_allocated_gb", round(memory_allocated, 2))
+                        mlflow.log_metric(f"gpu_{i}_memory_reserved_gb", round(memory_reserved, 2))
+            except ImportError:
+                pass
+            
+            print("[性能] 最终系统性能状态已记录")
+            
+        except Exception as e:
+            print(f"[警告] 无法记录最终性能信息: {e}")
+    
+    def start_stage_timer(self, stage_name: str):
+        """开始记录某阶段的执行时间。"""
+        self.stage_start_times[stage_name] = time.time()
+        print(f"[计时] 开始记录 {stage_name} 阶段时间")
+    
+    def end_stage_timer(self, stage_name: str, log_metrics: Dict[str, Any] = None):
+        """结束记录某阶段的执行时间并记录指标。"""
+        if stage_name in self.stage_start_times:
+            elapsed_time = time.time() - self.stage_start_times[stage_name]
+            mlflow.log_metric(f"{stage_name}_duration_seconds", elapsed_time)
+            print(f"[计时] {stage_name} 阶段完成，耗时: {elapsed_time:.2f}s")
+            
+            # 记录额外指标
+            if log_metrics:
+                for key, value in log_metrics.items():
+                    mlflow.log_metric(f"{stage_name}_{key}", value)
+            
+            del self.stage_start_times[stage_name]
+        else:
+            print(f"[警告] 未找到 {stage_name} 阶段的开始时间")
+    
+    def log_training_progress(self, step: int, loss: float, learning_rate: float = None):
+        """记录训练进度。"""
+        mlflow.log_metric("loss", loss, step=step)
+        if learning_rate:
+            mlflow.log_metric("learning_rate", learning_rate, step=step)
+        
+        # 记录系统资源使用情况
+        try:
+            memory = psutil.virtual_memory()
+            mlflow.log_metric("memory_usage_percent", memory.percent, step=step)
+            
+            # GPU内存使用（如果可用）
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    gpu_memory = torch.cuda.memory_allocated() / (1024**3)
+                    mlflow.log_metric("gpu_memory_usage_gb", round(gpu_memory, 2), step=step)
+            except ImportError:
+                pass
+                
+        except Exception as e:
+            print(f"[警告] 无法记录训练进度的系统信息: {e}")
+    
+    def log_evaluation_results(self, task_name: str, success_rate: float, avg_steps: float = None, 
+                              avg_time: float = None):
+        """记录评估结果。"""
+        mlflow.log_metric(f"{task_name}_success_rate", success_rate)
+        if avg_steps:
+            mlflow.log_metric(f"{task_name}_avg_steps", avg_steps)
+        if avg_time:
+            mlflow.log_metric(f"{task_name}_avg_time_seconds", avg_time)
+        
+        print(f"[评估] {task_name} 结果已记录: 成功率={success_rate:.2%}")
+    
+    def log_model_size_info(self, model_path: str):
+        """记录模型大小信息。"""
+        try:
+            if os.path.exists(model_path):
+                # 计算目录总大小
+                total_size = 0
+                for dirpath, dirnames, filenames in os.walk(model_path):
+                    for filename in filenames:
+                        filepath = os.path.join(dirpath, filename)
+                        total_size += os.path.getsize(filepath)
+                
+                model_size_mb = total_size / (1024 * 1024)
+                mlflow.log_metric("model_size_mb", round(model_size_mb, 2))
+                print(f"[模型] 模型大小: {model_size_mb:.2f} MB")
+                
+        except Exception as e:
+            print(f"[警告] 无法记录模型大小信息: {e}") 

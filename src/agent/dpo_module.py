@@ -43,7 +43,10 @@ class DPOModule(BaseModel):
         save_strategy: str = "steps",
         save_steps: Optional[int] = None,
         max_prompt_length: int = 512,
-        max_length: int = 1024
+        max_length: int = 1024,
+        eval_strategy: str = "steps",
+        eval_steps: Optional[int] = None,
+        early_stopping_patience: int = 3
     ) -> DPOConfig:
         """
         创建DPO训练配置。
@@ -60,12 +63,22 @@ class DPOModule(BaseModel):
             save_steps (int, optional): 保存步数间隔
             max_prompt_length (int): 最大prompt长度
             max_length (int): 最大序列长度
+            eval_strategy (str): 评估策略
+            eval_steps (int, optional): 评估步数间隔
+            early_stopping_patience (int): 早停耐心值
             
         Returns:
             DPOConfig: DPO配置对象
         """
         if save_steps is None:
-            save_steps = max_steps // 2
+            save_steps = max(max_steps // 2, 1)
+        if eval_steps is None:
+            eval_steps = max(max_steps // 3, 1)
+            
+        # Ensure eval_steps is compatible with save_steps for load_best_model_at_end
+        if save_steps % eval_steps != 0:
+            # Adjust eval_steps to be a divisor of save_steps
+            eval_steps = save_steps
             
         return DPOConfig(
             output_dir=output_dir,
@@ -76,6 +89,11 @@ class DPOModule(BaseModel):
             max_steps=max_steps,
             save_strategy=save_strategy,
             save_steps=save_steps,
+            eval_strategy=eval_strategy,
+            eval_steps=eval_steps,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
             report_to="none",
             beta=beta,
             max_prompt_length=max_prompt_length,

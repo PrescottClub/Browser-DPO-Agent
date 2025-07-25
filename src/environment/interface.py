@@ -4,6 +4,9 @@ import re  # 引入正则表达式库
 
 import gymnasium as gym
 
+# Import warning filters early to suppress noisy warnings
+from src.utils.warning_filters import configure_warnings_for_dpo_driver
+
 try:
     from src.miniwob import MiniWoBEnvironment
     from src.miniwob.action import Action, ActionSpaceConfig, ActionTypes
@@ -28,11 +31,18 @@ ACTION_SPACE_CONFIG = ActionSpaceConfig(
 )
 
 # 注册 MiniWoB++ 环境
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*Overriding environment.*")
+
 try:
     from src.miniwob.registration import register_miniwob_envs
 except ImportError:
     from miniwob.registration import register_miniwob_envs
-register_miniwob_envs()
+    
+# 临时抑制警告进行环境注册
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    register_miniwob_envs()
 
 
 class EnvironmentInterface:

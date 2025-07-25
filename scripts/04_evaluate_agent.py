@@ -92,7 +92,7 @@ def main():
             sft_adapter_path = checkpoint_manager.get_checkpoint_path("sft")
             print(f"✓ 从checkpoint管理器获取SFT路径: {sft_adapter_path}")
         except (FileNotFoundError, KeyError, ValueError) as e:
-            print(f"⚠️ 无法从checkpoint管理器获取SFT路径: {e}")
+            print(f"[WARNING] 无法从checkpoint管理器获取SFT路径: {e}")
             print("回退到配置文件中的路径...")
             sft_adapter_path = config.paths.sft_adapter_path + "/checkpoint-100"
             print(f"使用回退路径: {sft_adapter_path}")
@@ -102,7 +102,7 @@ def main():
             dpo_adapter_path = checkpoint_manager.get_checkpoint_path("dpo")
             print(f"✓ 从checkpoint管理器获取DPO路径: {dpo_adapter_path}")
         except (FileNotFoundError, KeyError, ValueError) as e:
-            print(f"⚠️ 无法从checkpoint管理器获取DPO路径: {e}")
+            print(f"[WARNING] 无法从checkpoint管理器获取DPO路径: {e}")
             print("回退到配置文件中的路径...")
             dpo_adapter_path = config.paths.dpo_adapter_path
             print(f"使用回退路径: {dpo_adapter_path}")
@@ -170,9 +170,9 @@ DPO 强化模型平均成功率: {dpo_success_rate:.2%}
 
         # 根据PRD的目标进行判定
         if improvement >= 0.20:
-            print("\n🎉 结论：成功！DPO显著提升了Agent性能，已达成项目核心目标！")
+            print("\n[SUCCESS] 结论：成功！DPO显著提升了Agent性能，已达成项目核心目标！")
         else:
-            print("\n⚠️ 结论：结果未达预期。DPO带来的提升有限，需要进一步分析。")
+            print("\n[WARNING] 结论：结果未达预期。DPO带来的提升有限，需要进一步分析。")
 
 
 if __name__ == "__main__":

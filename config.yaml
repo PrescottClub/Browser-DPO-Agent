@@ -2,7 +2,7 @@
 
 # Project settings
 project:
-  seed: 42  # Random seed for reproducibility
+  seed: 42
 
 model:
   base_model_name: "Qwen/Qwen2-7B-Instruct"
@@ -21,14 +21,14 @@ training:
     batch_size: 1
     grad_accumulation_steps: 4
   dpo:
-    learning_rate: 5.0e-6
-    max_steps: 50
+    learning_rate: 1.0e-6
+    max_steps: 10
     batch_size: 1
     grad_accumulation_steps: 2
     beta: 0.1
 
 evaluation:
-  num_episodes_per_task: 10
+  num_episodes_per_task: 20
   tasks:
-    - "miniwob/click-button-v1"
-    - "miniwob/fill-form-v1"
+    - "click-button"
+    - "click-test"

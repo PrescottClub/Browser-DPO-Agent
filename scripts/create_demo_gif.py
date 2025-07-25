@@ -27,9 +27,9 @@ def check_dependencies():
     # Check asciinema
     try:
         subprocess.run(["asciinema", "--version"], capture_output=True, check=True)
-        print("✅ asciinema is available")
+        print("[SUCCESS] asciinema is available")
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("❌ asciinema not found. Please run: poetry install")
+        print("[ERROR] asciinema not found. Please run: poetry install")
         return False
     
     # Check agg
@@ -38,17 +38,17 @@ def check_dependencies():
         windows_agg_path = Path(__file__).parent / "agg.exe"
         if windows_agg_path.exists():
             agg_executable = str(windows_agg_path)
-            print("✅ agg.exe found in scripts/ directory")
+            print("[SUCCESS] agg.exe found in scripts/ directory")
         else:
-            print("❌ agg.exe not found in scripts/ directory")
+            print("[ERROR] agg.exe not found in scripts/ directory")
             print("   Download from: https://github.com/asciinema/agg/releases")
             return False
     else:
         try:
             subprocess.run([agg_executable, "--version"], capture_output=True, check=True)
-            print("✅ agg is available")
+            print("[SUCCESS] agg is available")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print("❌ agg not found. Please install via your package manager")
+            print("[ERROR] agg not found. Please install via your package manager")
             print("   macOS: brew install agg")
             print("   Linux: Check your distro's package manager")
             return False
@@ -72,43 +72,43 @@ import sys
 def simulate_evaluation():
     """Simulate a DPO-Driver evaluation with nice output."""
     
-    print("🤖 DPO-Driver: Environment Feedback Direct Preference Optimization")
+    print("[BOT] DPO-Driver: Environment Feedback Direct Preference Optimization")
     print("=" * 65)
     time.sleep(1)
     
-    print("\\n🚀 Loading DPO-enhanced agent...")
+    print("\\n[RUNNING] Loading DPO-enhanced agent...")
     print("   Model: Qwen2-7B-Instruct + DPO Adapter")
     print("   Environment: MiniWoB++ Web Automation")
     time.sleep(2)
     
-    print("\\n📋 Starting evaluation on click-button-v1 task...")
+    print("\\n[STEP] Starting evaluation on click-button-v1 task...")
     time.sleep(1)
     
-    print("\\n🎯 Episode 1/3:")
-    print("   💭 Thought: I need to click the button labeled 'Submit'")
-    print("   🖱️  Action: click(element='submit-btn')")
+    print("\\n[TARGET] Episode 1/3:")
+    print("   [THOUGHT] Thought: I need to click the button labeled 'Submit'")
+    print("   [ACTION] Action: click(element='submit-btn')")
     time.sleep(1.5)
-    print("   ✅ Result: SUCCESS - Task completed!")
+    print("   [SUCCESS] Result: SUCCESS - Task completed!")
     
-    print("\\n🎯 Episode 2/3:")
-    print("   💭 Thought: Looking for clickable button element")
-    print("   🖱️  Action: click(element='action-button')")
+    print("\\n[TARGET] Episode 2/3:")
+    print("   [THOUGHT] Thought: Looking for clickable button element")
+    print("   [ACTION] Action: click(element='action-button')")
     time.sleep(1.5)
-    print("   ✅ Result: SUCCESS - Task completed!")
+    print("   [SUCCESS] Result: SUCCESS - Task completed!")
     
-    print("\\n🎯 Episode 3/3:")
-    print("   💭 Thought: Identifying the correct button to click")
-    print("   🖱️  Action: click(element='primary-btn')")
+    print("\\n[TARGET] Episode 3/3:")
+    print("   [THOUGHT] Thought: Identifying the correct button to click")
+    print("   [ACTION] Action: click(element='primary-btn')")
     time.sleep(1.5)
-    print("   ✅ Result: SUCCESS - Task completed!")
+    print("   [SUCCESS] Result: SUCCESS - Task completed!")
     
     time.sleep(1)
-    print("\\n📊 Evaluation Results:")
+    print("\\n[NEXT STEPS] Evaluation Results:")
     print("   Task: click-button-v1")
     print("   Success Rate: 100% (3/3)")
     print("   Avg. Time: 2.1s per episode")
     
-    print("\\n🎉 DPO-Driver evaluation completed successfully!")
+    print("\\n[SUCCESS] DPO-Driver evaluation completed successfully!")
     print("   Environment feedback → Preference learning → Enhanced performance")
     time.sleep(2)
 
@@ -126,12 +126,12 @@ def create_demo_gif():
     Creates an animated GIF demonstration of DPO-Driver.
     """
     
-    print("🎬 DPO-Driver Demo GIF Creator")
+    print("[RUNNING] DPO-Driver Demo GIF Creator")
     print("=" * 40)
     
     # Check dependencies
     if not check_dependencies():
-        print("\\n❌ Missing dependencies. Please install required tools.")
+        print("\\n[ERROR] Missing dependencies. Please install required tools.")
         sys.exit(1)
     
     # Setup paths
@@ -171,27 +171,27 @@ def create_demo_gif():
     ]
     
     try:
-        print("\\n🎥 Recording demo session...")
+        print("\\n[RECORDING] Recording demo session...")
         print(f"   Command: {' '.join(record_command)}")
         subprocess.run(record_command, check=True)
-        print(f"✅ Recording saved to {output_cast_path}")
+        print(f"[SUCCESS] Recording saved to {output_cast_path}")
         
-        print("\\n🎨 Converting to GIF...")
+        print("\\n[CONVERTING] Converting to GIF...")
         print(f"   Output: {output_gif_path}")
         subprocess.run(convert_command, check=True)
-        print(f"✅ GIF created successfully!")
+        print(f"[SUCCESS] GIF created successfully!")
         
         # Cleanup
         demo_script_path.unlink()
         output_cast_path.unlink()
         
-        print("\\n🎉 Demo GIF creation completed!")
-        print(f"   📁 Location: {output_gif_path}")
-        print(f"   📏 File size: {output_gif_path.stat().st_size / 1024:.1f} KB")
-        print("\\n   ➡️  The README.md already points to this location!")
+        print("\\n[SUCCESS] Demo GIF creation completed!")
+        print(f"   [LOCATION] Location: {output_gif_path}")
+        print(f"   [SIZE] File size: {output_gif_path.stat().st_size / 1024:.1f} KB")
+        print("\\n   [INFO] The README.md already points to this location!")
         
     except subprocess.CalledProcessError as e:
-        print(f"❌ An error occurred: {e}")
+        print(f"[ERROR] An error occurred: {e}")
         print("   Please check the error messages above and try again.")
         
         # Cleanup on error
@@ -199,7 +199,7 @@ def create_demo_gif():
             demo_script_path.unlink()
             
     except FileNotFoundError as e:
-        print(f"❌ Command not found: {e}")
+        print(f"[ERROR] Command not found: {e}")
         print("   Please follow the installation instructions in the docstring.")
 
 if __name__ == "__main__":

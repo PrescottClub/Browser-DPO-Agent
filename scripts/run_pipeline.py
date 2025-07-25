@@ -28,7 +28,7 @@ def run_script(script_path: str, description: str) -> bool:
     Returns:
         True if successful, False if failed
     """
-    print(f"\n🚀 {description}")
+    print(f"\n[RUNNING] {description}")
     print(f"   Running: {script_path}")
     print("-" * 60)
     
@@ -42,23 +42,23 @@ def run_script(script_path: str, description: str) -> bool:
         )
         
         elapsed = time.time() - start_time
-        print(f"✅ {description} completed successfully in {elapsed:.1f}s")
+        print(f"[SUCCESS] {description} completed successfully in {elapsed:.1f}s")
         return True
         
     except subprocess.CalledProcessError as e:
         elapsed = time.time() - start_time
-        print(f"❌ {description} failed after {elapsed:.1f}s")
+        print(f"[ERROR] {description} failed after {elapsed:.1f}s")
         print(f"   Exit code: {e.returncode}")
         return False
     except KeyboardInterrupt:
-        print(f"\n⚠️  Pipeline interrupted by user")
+        print(f"\n[WARNING] Pipeline interrupted by user")
         return False
 
 def main():
     """Execute the complete DPO-Driver pipeline."""
     
     print("=" * 70)
-    print("🤖 DPO-Driver: Complete Training Pipeline")
+    print("DPO-Driver: Complete Training Pipeline")
     print("   Environment Feedback Direct Preference Optimization")
     print("=" * 70)
     
@@ -78,7 +78,7 @@ def main():
             missing_scripts.append(script_path)
     
     if missing_scripts:
-        print("❌ Missing required scripts:")
+        print("[ERROR] Missing required scripts:")
         for script in missing_scripts:
             print(f"   - {script}")
         print("\nPlease ensure all pipeline scripts are present.")
@@ -89,14 +89,14 @@ def main():
     total_start_time = time.time()
     
     for i, (script_path, description) in enumerate(pipeline_steps, 1):
-        print(f"\n📋 Step {i}/{len(pipeline_steps)}")
+        print(f"\n[STEP] {i}/{len(pipeline_steps)}")
         
         if run_script(script_path, description):
             successful_steps += 1
         else:
-            print(f"\n💥 Pipeline failed at step {i}: {description}")
+            print(f"\n[FAILED] Pipeline failed at step {i}: {description}")
             print(f"   {successful_steps}/{len(pipeline_steps)} steps completed successfully")
-            print("\n🔧 Troubleshooting tips:")
+            print("\n[TROUBLESHOOTING] Tips:")
             print("   - Check MLflow server is running: mlflow ui --host 127.0.0.1 --port 5000")
             print("   - Verify GPU availability: poetry run python -c 'import torch; print(torch.cuda.is_available())'")
             print("   - Review logs above for specific error messages")
@@ -105,15 +105,15 @@ def main():
     # Success!
     total_elapsed = time.time() - total_start_time
     print("\n" + "=" * 70)
-    print("🎉 DPO-Driver Pipeline Completed Successfully!")
+    print("[SUCCESS] DPO-Driver Pipeline Completed Successfully!")
     print(f"   Total execution time: {total_elapsed/60:.1f} minutes")
     print(f"   All {len(pipeline_steps)} steps completed")
     print("=" * 70)
-    print("\n📊 Next steps:")
+    print("\n[NEXT STEPS]:")
     print("   - Check MLflow UI for detailed experiment tracking")
     print("   - Review evaluation results in the final output")
     print("   - Explore model checkpoints in the models/ directory")
-    print("\n🚀 Your DPO-enhanced agent is ready!")
+    print("\n[READY] Your DPO-enhanced agent is ready!")
 
 if __name__ == "__main__":
     main() 

@@ -63,15 +63,31 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
     global _config
     if _config is None:
         print(f"Loading configuration from {config_path}...")
-        with open(config_path, "r") as f:
-            config_data = yaml.safe_load(f)
+        
+        try:
+            # Try UTF-8 encoding first
+            with open(config_path, "r", encoding='utf-8') as f:
+                config_data = yaml.safe_load(f)
+        except UnicodeDecodeError:
+            # Fallback to system default encoding
+            try:
+                with open(config_path, "r", encoding='gbk') as f:
+                    config_data = yaml.safe_load(f)
+            except UnicodeDecodeError:
+                # Last resort: ignore encoding errors
+                with open(config_path, "r", encoding='utf-8', errors='ignore') as f:
+                    config_data = yaml.safe_load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        except yaml.YAMLError as e:
+            raise yaml.YAMLError(f"Error parsing YAML file {config_path}: {e}")
 
         try:
             _config = AppConfig(**config_data)
             print("Configuration loaded and validated successfully.")
         except Exception as e:
             print(f"Error validating configuration: {e}")
-            raise
+            raise ValueError(f"Configuration validation failed: {e}")
     return _config
 
 

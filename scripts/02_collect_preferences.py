@@ -68,11 +68,10 @@ def main():
             print(f"使用回退路径: {adapter_path}")
         
         # 生成安全的输出文件路径
-        safe_output_file = checkpoint_manager.get_safe_output_path(
-            base_path=config.paths.preference_data,
-            run_id=mlflow_logger.get_run_id(),
-            allow_overwrite=args.overwrite
-        )
+        preference_dir = os.path.dirname(config.paths.preference_data)
+        os.makedirs(preference_dir, exist_ok=True)
+        
+        safe_output_file = f"{config.paths.preference_data}_{mlflow_logger.get_run_id()}"
         
         print(f"[安全] 安全偏好数据路径: {safe_output_file}")
 
@@ -137,7 +136,7 @@ def main():
                         continue
 
             except Exception as task_error:
-                print(f"❌ 处理任务 {task_id} 时发生错误: {task_error}")
+                print(f"[ERROR] 处理任务 {task_id} 时发生错误: {task_error}")
                 continue
             
             finally:

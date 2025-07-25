@@ -1,68 +1,68 @@
 #!/usr/bin/env python3
 """
-项目环境验证脚本
-验证所有依赖和核心组件是否正确安装
+Project environment verification script
+Verifies that all dependencies and core components are correctly installed
 """
 
 import os
 import sys
 from pathlib import Path
 
-# 添加项目根目录到Python路径
+# Add project root directory to Python path
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
+sys.path.insert(0, str(project_root))
 
 
 def check_dependencies():
-    """检查核心依赖"""
-    print("🔍 检查依赖包...")
+    """Check core dependencies"""
+    print("[CHECKING] Checking dependencies...")
 
     try:
         import torch
 
-        print(f"✅ PyTorch: {torch.__version__}")
+        print(f"[SUCCESS] PyTorch: {torch.__version__}")
     except ImportError:
-        print("❌ PyTorch 未安装")
+        print("[ERROR] PyTorch not installed")
         return False
 
     try:
         import transformers
 
-        print(f"✅ Transformers: {transformers.__version__}")
+        print(f"[SUCCESS] Transformers: {transformers.__version__}")
     except ImportError:
-        print("❌ Transformers 未安装")
+        print("[ERROR] Transformers not installed")
         return False
 
     try:
         import trl
 
-        print(f"✅ TRL: {trl.__version__}")
+        print(f"[SUCCESS] TRL: {trl.__version__}")
     except ImportError:
-        print("❌ TRL 未安装")
+        print("[ERROR] TRL not installed")
         return False
 
     try:
         import peft
 
-        print(f"✅ PEFT: {peft.__version__}")
+        print(f"[SUCCESS] PEFT: {peft.__version__}")
     except ImportError:
-        print("❌ PEFT 未安装")
+        print("[ERROR] PEFT not installed")
         return False
 
     try:
         import selenium
 
-        print(f"✅ Selenium: {selenium.__version__}")
+        print(f"[SUCCESS] Selenium: {selenium.__version__}")
     except ImportError:
-        print("❌ Selenium 未安装")
+        print("[ERROR] Selenium not installed")
         return False
 
     return True
 
 
 def check_project_structure():
-    """检查项目结构"""
-    print("\n📁 检查项目结构...")
+    """Check project structure"""
+    print("\n[CHECKING] Checking project structure...")
 
     required_dirs = [
         "src/agent",
@@ -91,73 +91,73 @@ def check_project_structure():
 
     for dir_path in required_dirs:
         if (project_root / dir_path).exists():
-            print(f"✅ {dir_path}/")
+            print(f"[SUCCESS] {dir_path}/")
         else:
-            print(f"❌ {dir_path}/ 不存在")
+            print(f"[ERROR] {dir_path}/ does not exist")
             all_good = False
 
     for file_path in required_files:
         if (project_root / file_path).exists():
-            print(f"✅ {file_path}")
+            print(f"[SUCCESS] {file_path}")
         else:
-            print(f"❌ {file_path} 不存在")
+            print(f"[ERROR] {file_path} does not exist")
             all_good = False
 
     return all_good
 
 
 def check_imports():
-    """检查核心模块导入"""
-    print("\n🔧 检查核心模块...")
+    """Check core module imports"""
+    print("\n[CHECKING] Testing module imports...")
 
     try:
-        # 检查AgentModel
+        # Check AgentModel
         sys.path.insert(0, str(project_root / "src"))
         from agent.model import AgentModel
 
-        print("✅ AgentModel 导入成功")
+        print("[SUCCESS] AgentModel imported successfully")
     except ImportError as e:
-        print(f"❌ AgentModel 导入失败: {e}")
+        print(f"[ERROR] AgentModel import failed: {e}")
         return False
 
     try:
-        # 检查EnvironmentInterface
+        # Check EnvironmentInterface
         from environment.interface import EnvironmentInterface
 
-        print("✅ EnvironmentInterface 导入成功")
+        print("[SUCCESS] EnvironmentInterface imported successfully")
     except ImportError as e:
-        print(f"❌ EnvironmentInterface 导入失败: {e}")
+        print(f"[ERROR] EnvironmentInterface import failed: {e}")
         return False
 
     return True
 
 
 def main():
-    """主验证流程"""
-    print("🚀 DPO-Driver 环境验证")
+    """Main verification process"""
+    print("[RUNNING] DPO-Driver Environment Verification")
     print("=" * 50)
 
-    # 检查依赖
+    # Check dependencies
     deps_ok = check_dependencies()
 
-    # 检查项目结构
+    # Check project structure
     structure_ok = check_project_structure()
 
-    # 检查模块导入
+    # Check module imports
     imports_ok = check_imports()
 
     print("\n" + "=" * 50)
 
     if deps_ok and structure_ok and imports_ok:
-        print("🎉 所有检查通过！项目环境配置正确。")
-        print("\n📋 下一步:")
-        print("1. 运行 SFT 训练: poetry run python scripts/01_sft_training.py")
-        print("2. 收集偏好数据: poetry run python scripts/02_collect_preferences.py")
-        print("3. 运行 DPO 训练: poetry run python scripts/03_dpo_training.py")
-        print("4. 评估性能: poetry run python scripts/04_evaluate_agent.py")
+        print("[SUCCESS] All checks passed! Project environment is configured correctly.")
+        print("\n[NEXT STEPS] Next steps:")
+        print("1. Run SFT training: poetry run python scripts/01_sft_training.py")
+        print("2. Collect preference data: poetry run python scripts/02_collect_preferences.py")
+        print("3. Run DPO training: poetry run python scripts/03_dpo_training.py")
+        print("4. Evaluate performance: poetry run python scripts/04_evaluate_agent.py")
         return True
     else:
-        print("❌ 环境配置存在问题，请检查上述错误信息。")
+        print("[ERROR] Environment setup has issues, please check the error messages above.")
         return False
 
 
