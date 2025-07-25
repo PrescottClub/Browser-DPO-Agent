@@ -17,6 +17,7 @@ dpo_test_output/
 # IDE configuration files
 .vscode/
 .idea/
+.claude/
 *.suo
 *.ntvs*
 *.njsproj
