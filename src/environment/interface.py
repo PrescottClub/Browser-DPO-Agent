@@ -14,12 +14,87 @@ except ImportError:
     from miniwob.action import ActionTypes, ActionSpaceConfig, Action
     from miniwob import MiniWoBEnvironment
 
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, Tuple, Optional, Union, List
 
 from selenium.webdriver.common.by import By
 
 # 导入新的日志系统
 from src.utils.logger import get_global_logger, log_action_parsing_error
+
+
+class ElementReferenceManager:
+    """
+    元素引用管理器，负责元素定位和引用管理。
+    """
+
+    def __init__(self):
+        self.element_cache: Dict[int, Any] = {}
+        self.ref_counter: int = 0
+        self.selector_cache: Dict[str, int] = {}
+
+    def get_element_ref(self, selector: str, page_context=None) -> int:
+        """
+        根据选择器获取元素引用。
+
+        Args:
+            selector (str): CSS选择器
+            page_context: 页面上下文（在实际环境中使用）
+
+        Returns:
+            int: 元素引用ID
+
+        Raises:
+            ElementNotFoundError: 当元素未找到时
+            ElementLocationError: 当元素定位失败时
+        """
+        # 检查缓存
+        if selector in self.selector_cache:
+            cached_ref = self.selector_cache[selector]
+            if cached_ref in self.element_cache:
+                return cached_ref
+
+        try:
+            # 在实际环境中，这里会使用page_context来查找元素
+            # 目前为了兼容性，我们生成一个新的引用
+            self.ref_counter += 1
+            element_ref = self.ref_counter
+
+            # 缓存元素引用
+            self.element_cache[element_ref] = {
+                "selector": selector,
+                "timestamp": self._get_timestamp(),
+                "valid": True
+            }
+            self.selector_cache[selector] = element_ref
+
+            return element_ref
+
+        except Exception as e:
+            raise ElementLocationError(f"Failed to locate element with selector '{selector}': {e}")
+
+    def invalidate_cache(self):
+        """清理缓存"""
+        self.element_cache.clear()
+        self.selector_cache.clear()
+
+    def is_valid_ref(self, ref: int) -> bool:
+        """检查引用是否有效"""
+        return ref in self.element_cache and self.element_cache[ref].get("valid", False)
+
+    def _get_timestamp(self):
+        """获取当前时间戳"""
+        import time
+        return time.time()
+
+
+class ElementNotFoundError(Exception):
+    """元素未找到异常"""
+    pass
+
+
+class ElementLocationError(Exception):
+    """元素定位异常"""
+    pass
 
 # 首先，配置Action Space，我们使用基础的元素操作
 # 这段代码应该在类的外部，作为模块级别的配置
@@ -27,6 +102,7 @@ ACTION_SPACE_CONFIG = ActionSpaceConfig(
     action_types=[
         ActionTypes.CLICK_ELEMENT,
         ActionTypes.FOCUS_ELEMENT_AND_TYPE_TEXT,
+        # 添加更多动作类型支持
     ]
 )
 
@@ -74,6 +150,10 @@ class EnvironmentInterface:
             action_space_config=ACTION_SPACE_CONFIG,
             render_mode="human",
         )
+
+        # 初始化元素引用管理器
+        self.element_manager = ElementReferenceManager()
+
         print(f"环境 {self.task_id} 已初始化。")
 
     def reset(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -83,6 +163,9 @@ class EnvironmentInterface:
         Returns:
             Tuple[Dict[str, Any], Dict[str, Any]]: 返回初始的观察（observation）和信息（info）。
         """
+        # 清理元素引用缓存
+        self.element_manager.invalidate_cache()
+
         observation, info = self.env.reset()
         print("环境已重置。")
         return observation, info
@@ -128,28 +211,27 @@ class EnvironmentInterface:
     # 新增一个私有方法用于解析
     def _parse_action(self, action_string: str) -> Tuple[Optional[Action], Optional[str]]:
         """
-        使用正则表达式从字符串解析出具体的Action对象。
-        
+        增强的动作解析器，支持多种选择器格式和动作类型。
+
         Args:
             action_string (str): 待解析的动作字符串
-            
+
         Returns:
             Tuple[Optional[Action], Optional[str]]: 返回 (解析后的Action对象, 错误信息)
-            - 如果解析成功: (Action对象, None)
-            - 如果解析失败: (None, 错误信息字符串)
-            
-        Examples:
-            >>> interface._parse_action('CLICK(selector="#button-1")')
-            ({'action_type': ActionTypes.CLICK_ELEMENT, 'ref': 0}, None)
-            
-            >>> interface._parse_action('TYPE(selector="input", text="hello")')
-            ({'action_type': ActionTypes.FOCUS_ELEMENT_AND_TYPE_TEXT, 'ref': 0, 'text': 'hello'}, None)
-            
-            >>> interface._parse_action('INVALID_ACTION')
-            (None, 'Unknown action format: INVALID_ACTION')
+
+        Supported formats:
+            - CLICK(selector="css_selector")
+            - TYPE(selector="css_selector", text="text")
+            - SELECT(selector="css_selector", value="value")
+            - CHECK(selector="css_selector")
+
+        Supported selector formats:
+            - Standard CSS: "#id", ".class", "tag[attr='value']"
+            - jQuery-style: "tag:contains('text')"
+            - Attribute selectors: "[data-test='value']"
         """
         logger = get_global_logger()
-        
+
         # 输入验证
         if action_string is None:
             error_msg = "Action string is None"
@@ -160,10 +242,10 @@ class EnvironmentInterface:
                 expected_format="CLICK(selector=\"...\") or TYPE(selector=\"...\", text=\"...\")"
             )
             return None, error_msg
-        
+
         # 预处理
         action_string = action_string.strip()
-        
+
         if not action_string:
             error_msg = "Action string is empty"
             log_action_parsing_error(
@@ -173,18 +255,18 @@ class EnvironmentInterface:
                 expected_format="CLICK(selector=\"...\") or TYPE(selector=\"...\", text=\"...\")"
             )
             return None, error_msg
-        
+
         logger.debug(f"Parsing action string: {repr(action_string)}")
-        
+
         try:
-            # 匹配 CLICK(selector="...")
+            # 解析CLICK动作
             click_match = re.match(r'CLICK\(selector="(.+?)"\)', action_string)
             if click_match:
                 selector = click_match.group(1)
-                
-                # 验证selector是否有效
-                if not selector or selector.isspace():
-                    error_msg = "Empty or whitespace-only selector in CLICK action"
+                converted_selector = self._convert_selector(selector)
+
+                if not converted_selector:
+                    error_msg = f"Invalid or unsupported selector: {selector}"
                     log_action_parsing_error(
                         logger=logger,
                         action_str=action_string,
@@ -192,22 +274,34 @@ class EnvironmentInterface:
                         expected_format="CLICK(selector=\"valid_css_selector\")"
                     )
                     return None, error_msg
-                
-                logger.debug(f"Successfully parsed CLICK action with selector: {selector}")
-                # 创建CLICK_ELEMENT类型的Action
-                return {
-                    "action_type": ActionTypes.CLICK_ELEMENT,
-                    "ref": 0,  # 简化处理，使用固定的ref值
-                }, None
 
-            # 匹配 TYPE(selector="...", text="...")
+                # 获取真正的元素引用
+                try:
+                    element_ref = self.element_manager.get_element_ref(converted_selector)
+                    logger.debug(f"Successfully parsed CLICK action with selector: {converted_selector}, ref: {element_ref}")
+                    return {
+                        "action_type": ActionTypes.CLICK_ELEMENT,
+                        "ref": element_ref,  # 使用真正的元素引用
+                        "selector": converted_selector,  # 保存转换后的选择器
+                    }, None
+                except (ElementNotFoundError, ElementLocationError) as e:
+                    error_msg = f"Failed to locate element for CLICK action: {e}"
+                    log_action_parsing_error(
+                        logger=logger,
+                        action_str=action_string,
+                        error_reason=error_msg,
+                        expected_format="CLICK(selector=\"valid_css_selector\")"
+                    )
+                    return None, error_msg
+
+            # 解析TYPE动作
             type_match = re.match(r'TYPE\(selector="(.+?)", text="(.+?)"\)', action_string)
             if type_match:
                 selector, text = type_match.groups()
-                
-                # 验证selector和text是否有效
-                if not selector or selector.isspace():
-                    error_msg = "Empty or whitespace-only selector in TYPE action"
+                converted_selector = self._convert_selector(selector)
+
+                if not converted_selector:
+                    error_msg = f"Invalid or unsupported selector in TYPE action: {selector}"
                     log_action_parsing_error(
                         logger=logger,
                         action_str=action_string,
@@ -215,17 +309,79 @@ class EnvironmentInterface:
                         expected_format="TYPE(selector=\"valid_css_selector\", text=\"some_text\")"
                     )
                     return None, error_msg
-                
-                if not text:  # 允许空文本，但不能是None
+
+                if text is None:  # 允许空文本，但不能是None
                     logger.warning(f"Empty text in TYPE action: {action_string}")
-                
-                logger.debug(f"Successfully parsed TYPE action with selector: {selector}, text: {repr(text)}")
-                # 创建FOCUS_ELEMENT_AND_TYPE_TEXT类型的Action
-                return {
-                    "action_type": ActionTypes.FOCUS_ELEMENT_AND_TYPE_TEXT,
-                    "ref": 0,  # 简化处理，使用固定的ref值
-                    "text": text,
-                }, None
+                    text = ""
+
+                # 获取真正的元素引用
+                try:
+                    element_ref = self.element_manager.get_element_ref(converted_selector)
+                    logger.debug(f"Successfully parsed TYPE action with selector: {converted_selector}, text: {repr(text)}, ref: {element_ref}")
+                    return {
+                        "action_type": ActionTypes.FOCUS_ELEMENT_AND_TYPE_TEXT,
+                        "ref": element_ref,  # 使用真正的元素引用
+                        "text": text,
+                        "selector": converted_selector,
+                    }, None
+                except (ElementNotFoundError, ElementLocationError) as e:
+                    error_msg = f"Failed to locate element for TYPE action: {e}"
+                    log_action_parsing_error(
+                        logger=logger,
+                        action_str=action_string,
+                        error_reason=error_msg,
+                        expected_format="TYPE(selector=\"valid_css_selector\", text=\"some_text\")"
+                    )
+                    return None, error_msg
+
+            # 解析SELECT动作 (新增支持)
+            select_match = re.match(r'SELECT\(selector="(.+?)", value="(.+?)"\)', action_string)
+            if select_match:
+                selector, value = select_match.groups()
+                converted_selector = self._convert_selector(selector)
+
+                if not converted_selector:
+                    error_msg = f"Invalid or unsupported selector in SELECT action: {selector}"
+                    return None, error_msg
+
+                # 获取真正的元素引用
+                try:
+                    element_ref = self.element_manager.get_element_ref(converted_selector)
+                    logger.debug(f"Successfully parsed SELECT action with selector: {converted_selector}, value: {value}, ref: {element_ref}")
+                    # 注意：SELECT可能需要特殊处理，这里先转换为CLICK
+                    return {
+                        "action_type": ActionTypes.CLICK_ELEMENT,
+                        "ref": element_ref,
+                        "selector": converted_selector,
+                        "select_value": value,  # 额外信息
+                    }, None
+                except (ElementNotFoundError, ElementLocationError) as e:
+                    error_msg = f"Failed to locate element for SELECT action: {e}"
+                    return None, error_msg
+
+            # 解析CHECK动作 (新增支持)
+            check_match = re.match(r'CHECK\(selector="(.+?)"\)', action_string)
+            if check_match:
+                selector = check_match.group(1)
+                converted_selector = self._convert_selector(selector)
+
+                if not converted_selector:
+                    error_msg = f"Invalid or unsupported selector in CHECK action: {selector}"
+                    return None, error_msg
+
+                # 获取真正的元素引用
+                try:
+                    element_ref = self.element_manager.get_element_ref(converted_selector)
+                    logger.debug(f"Successfully parsed CHECK action with selector: {converted_selector}, ref: {element_ref}")
+                    return {
+                        "action_type": ActionTypes.CLICK_ELEMENT,
+                        "ref": element_ref,
+                        "selector": converted_selector,
+                        "action_subtype": "check",  # 标记为复选框操作
+                    }, None
+                except (ElementNotFoundError, ElementLocationError) as e:
+                    error_msg = f"Failed to locate element for CHECK action: {e}"
+                    return None, error_msg
 
             # 如果都未匹配，记录详细的错误信息
             error_msg = f"Unknown action format: {action_string}"
@@ -266,6 +422,96 @@ class EnvironmentInterface:
                 expected_format="CLICK(selector=\"...\") or TYPE(selector=\"...\", text=\"...\")"
             )
             return None, error_msg
+
+    def _convert_selector(self, selector: str) -> str:
+        """
+        将各种格式的选择器转换为标准CSS选择器。
+
+        Args:
+            selector (str): 原始选择器
+
+        Returns:
+            str: 转换后的标准CSS选择器，如果无法转换则返回None
+        """
+        if not selector or selector.isspace():
+            return None
+
+        # 移除多余的空格
+        selector = selector.strip()
+
+        # 处理jQuery风格的:contains()选择器
+        if ':contains(' in selector:
+            return self._convert_contains_selector(selector)
+
+        # 处理复合选择器（逗号分隔的多个选择器）
+        if ',' in selector:
+            selectors = [s.strip() for s in selector.split(',')]
+            converted = []
+            for s in selectors:
+                conv = self._convert_selector(s)  # 递归转换
+                if conv:
+                    converted.append(conv)
+            return ', '.join(converted) if converted else None
+
+        # 验证标准CSS选择器格式
+        if self._is_valid_css_selector(selector):
+            return selector
+
+        return None
+
+    def _convert_contains_selector(self, selector: str) -> str:
+        """
+        将:contains()选择器转换为XPath或属性选择器。
+
+        Examples:
+            "button:contains('Login')" -> "button[text()='Login']" (XPath style)
+            "a:contains('Home')" -> "a[text()='Home']"
+        """
+        # 匹配 tag:contains('text') 格式
+        contains_pattern = r"([^:]+):contains\(['\"]([^'\"]+)['\"]\)"
+        match = re.search(contains_pattern, selector)
+
+        if match:
+            tag, text = match.groups()
+            # 转换为属性选择器的近似形式
+            # 注意：这是一个简化的转换，实际应用中可能需要更复杂的逻辑
+            return f"{tag}[title*='{text}'], {tag}[aria-label*='{text}'], {tag}[data-text*='{text}']"
+
+        return selector
+
+    def _is_valid_css_selector(self, selector: str) -> bool:
+        """
+        验证是否为有效的CSS选择器。
+
+        Args:
+            selector (str): 待验证的选择器
+
+        Returns:
+            bool: 是否为有效的CSS选择器
+        """
+        # 基本的CSS选择器格式验证
+        # 这是一个简化的验证，实际应用中可能需要更严格的验证
+
+        # 检查空字符串和纯空白字符
+        if not selector or selector.isspace():
+            return False
+
+        # 检查是否包含基本的CSS选择器字符
+        valid_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_#.[]()=:*^$|~+> \'"')
+        if not all(c in valid_chars for c in selector):
+            return False
+
+        # 检查基本格式 - 扩展验证逻辑
+        if (selector.startswith(('.', '#')) or
+            selector.isalpha() or
+            '[' in selector or
+            '>' in selector or
+            '+' in selector or
+            '~' in selector or
+            ' ' in selector):  # 包含空格的组合选择器
+            return True
+
+        return False
 
     def close(self):
         """

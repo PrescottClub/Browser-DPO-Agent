@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import random
+from typing import List, Dict, Any, Tuple
 
 from tqdm import tqdm
 
@@ -18,6 +19,121 @@ from src.utils.config import load_config
 from src.utils.reproducibility import set_seed, get_seed_from_config
 from src.utils.checkpoint_manager import CheckpointManager
 from src.utils.mlflow_logger import MLflowLogger
+
+
+class PreferenceSelector:
+    """
+    智能偏好选择器，基于质量指标选择最佳偏好对。
+    """
+
+    def __init__(self):
+        self.quality_metrics = ['confidence', 'step_count', 'completion_time', 'action_validity']
+
+    def select_preference_pairs(self, success_completions: List[Dict], fail_completions: List[Dict]) -> Tuple[str, str]:
+        """
+        基于质量指标选择最佳偏好对。
+
+        Args:
+            success_completions: 成功的完成列表
+            fail_completions: 失败的完成列表
+
+        Returns:
+            Tuple[str, str]: (chosen, rejected) 偏好对
+        """
+        if not success_completions or not fail_completions:
+            return None, None
+
+        # 选择最高质量的成功样本
+        best_success = self._select_best_success(success_completions)
+
+        # 选择最低质量的失败样本（对比度最大）
+        worst_failure = self._select_worst_failure(fail_completions)
+
+        return best_success["completion"], worst_failure["completion"]
+
+    def _select_best_success(self, success_completions: List[Dict]) -> Dict:
+        """选择最高质量的成功样本"""
+        if len(success_completions) == 1:
+            return success_completions[0]
+
+        scored_completions = []
+        for completion in success_completions:
+            score = self._calculate_success_quality_score(completion)
+            scored_completions.append((completion, score))
+
+        # 按分数降序排序，选择最高分
+        scored_completions.sort(key=lambda x: x[1], reverse=True)
+        return scored_completions[0][0]
+
+    def _select_worst_failure(self, fail_completions: List[Dict]) -> Dict:
+        """选择最低质量的失败样本"""
+        if len(fail_completions) == 1:
+            return fail_completions[0]
+
+        scored_completions = []
+        for completion in fail_completions:
+            score = self._calculate_failure_quality_score(completion)
+            scored_completions.append((completion, score))
+
+        # 按分数升序排序，选择最低分
+        scored_completions.sort(key=lambda x: x[1])
+        return scored_completions[0][0]
+
+    def _calculate_success_quality_score(self, completion: Dict) -> float:
+        """计算成功样本的质量分数"""
+        score = 0.0
+        completion_text = completion["completion"]
+
+        # 1. 检查是否包含清晰的思考过程
+        if "thought:" in completion_text.lower() or "thinking:" in completion_text.lower():
+            score += 2.0
+
+        # 2. 检查动作格式的正确性
+        if "action:" in completion_text.lower():
+            score += 2.0
+            # 检查动作格式
+            action_part = completion_text.split("action:")[-1].strip()
+            if any(action in action_part.upper() for action in ["CLICK", "TYPE", "SELECT", "CHECK"]):
+                score += 1.0
+
+        # 3. 检查响应长度（适中的长度通常质量更好）
+        response_length = len(completion_text.split())
+        if 10 <= response_length <= 50:  # 适中长度
+            score += 1.0
+        elif response_length > 50:  # 过长可能包含冗余信息
+            score -= 0.5
+
+        # 4. 检查是否包含选择器
+        if 'selector=' in completion_text:
+            score += 1.0
+
+        return score
+
+    def _calculate_failure_quality_score(self, completion: Dict) -> float:
+        """计算失败样本的质量分数（分数越低表示失败得越彻底）"""
+        score = 0.0
+        completion_text = completion["completion"]
+
+        # 1. 如果包含明显的错误格式，分数更低
+        if "action:" not in completion_text.lower():
+            score -= 2.0
+
+        # 2. 如果包含无效的动作
+        if any(invalid in completion_text.lower() for invalid in ["invalid", "error", "fail", "cannot"]):
+            score -= 1.0
+
+        # 3. 如果响应过短或过长
+        response_length = len(completion_text.split())
+        if response_length < 5:  # 过短
+            score -= 1.0
+        elif response_length > 100:  # 过长且失败
+            score -= 0.5
+
+        # 4. 如果缺少选择器
+        if 'selector=' not in completion_text:
+            score -= 1.0
+
+        return score
 
 
 def main():
@@ -105,8 +221,12 @@ def main():
                         if "action:" in completion:
                             try:
                                 last_action = completion.split("action:")[-1].strip()
-                            except:
-                                pass
+                            except (IndexError, AttributeError) as e:
+                                print(f"[警告] 动作提取失败: {e}")
+                                last_action = None
+                            except Exception as e:
+                                print(f"[错误] 动作提取时发生未预期错误: {e}")
+                                last_action = None
 
                         if last_action:
                             _, reward, terminated, _, _ = env.step(last_action)
@@ -123,20 +243,45 @@ def main():
                                 }
                             )
                     
+                    except KeyboardInterrupt:
+                        print(f"[中断] 用户中断了回合 {i} 的处理")
+                        raise  # 重新抛出，让上层处理
+                    except (EnvironmentError, RuntimeError) as env_error:
+                        print(f"[环境错误] 处理回合 {i} 时环境错误: {env_error}")
+                        # 记录环境错误但继续处理
+                        interaction_log.append(
+                            {
+                                "prompt": f"Environment error in episode {i}",
+                                "completion": f"Environment failed: {str(env_error)}",
+                                "reward": -1.0,
+                            }
+                        )
+                        continue
                     except Exception as episode_error:
-                        print(f"[警告] 处理回合 {i} 时发生错误: {episode_error}")
+                        print(f"[未知错误] 处理回合 {i} 时发生未预期错误: {episode_error}")
+                        print(f"[调试] 错误类型: {type(episode_error).__name__}")
                         # 记录失败的回合但继续处理
                         interaction_log.append(
                             {
-                                "prompt": f"Error in episode {i}",
-                                "completion": f"Episode failed: {str(episode_error)}",
+                                "prompt": f"Unexpected error in episode {i}",
+                                "completion": f"Episode failed unexpectedly: {str(episode_error)}",
                                 "reward": -1.0,
                             }
                         )
                         continue
 
+            except KeyboardInterrupt:
+                print(f"[中断] 用户中断了任务 {task_id} 的处理")
+                raise  # 重新抛出，让上层处理
+            except (ImportError, ModuleNotFoundError) as import_error:
+                print(f"[导入错误] 任务 {task_id} 缺少必要的依赖: {import_error}")
+                continue
+            except (FileNotFoundError, PermissionError) as file_error:
+                print(f"[文件错误] 任务 {task_id} 文件访问错误: {file_error}")
+                continue
             except Exception as task_error:
-                print(f"[ERROR] 处理任务 {task_id} 时发生错误: {task_error}")
+                print(f"[未知错误] 处理任务 {task_id} 时发生未预期错误: {task_error}")
+                print(f"[调试] 错误类型: {type(task_error).__name__}")
                 continue
             
             finally:
@@ -154,24 +299,34 @@ def main():
         preferences = []
         prompts = set([log["prompt"] for log in interaction_log])
 
+        # 初始化智能偏好选择器
+        preference_selector = PreferenceSelector()
+
         for prompt in prompts:
             prompt_logs = [log for log in interaction_log if log["prompt"] == prompt]
 
-            success_completions = [
-                log["completion"] for log in prompt_logs if log["reward"] == 1.0
-            ]
-            fail_completions = [
-                log["completion"] for log in prompt_logs if log["reward"] <= 0.0
-            ]
+            # 分离成功和失败的案例，保留完整的log信息用于质量评估
+            success_logs = [log for log in prompt_logs if log["reward"] == 1.0]
+            fail_logs = [log for log in prompt_logs if log["reward"] <= 0.0]
 
             # 如果同时有成功和失败的案例，则创建偏好对
-            if success_completions and fail_completions:
-                # 简单起见，我们随机选一个成功和失败的案例
-                chosen = random.choice(success_completions)
-                rejected = random.choice(fail_completions)
-                preferences.append(
-                    {"prompt": prompt, "chosen": chosen, "rejected": rejected}
-                )
+            if success_logs and fail_logs:
+                # 使用智能选择器选择最佳偏好对
+                chosen, rejected = preference_selector.select_preference_pairs(success_logs, fail_logs)
+
+                if chosen and rejected:
+                    preferences.append(
+                        {"prompt": prompt, "chosen": chosen, "rejected": rejected}
+                    )
+                    print(f"✓ 智能选择偏好对: {prompt[:50]}...")
+                else:
+                    # 如果智能选择失败，回退到随机选择
+                    chosen = random.choice([log["completion"] for log in success_logs])
+                    rejected = random.choice([log["completion"] for log in fail_logs])
+                    preferences.append(
+                        {"prompt": prompt, "chosen": chosen, "rejected": rejected}
+                    )
+                    print(f"⚠ 回退到随机选择: {prompt[:50]}...")
 
         # 7. 保存数据集
         print(f"成功构建了 {len(preferences)} 条偏好数据。")

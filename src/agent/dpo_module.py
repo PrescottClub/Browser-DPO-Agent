@@ -119,20 +119,19 @@ class DPOModule(BaseModel):
         Returns:
             训练结果对象
         """
-        # 解析配置参数
-        if config:
-            learning_rate = getattr(config, 'learning_rate', 5e-6)
-            max_steps = getattr(config, 'max_steps', 50)
-            batch_size = getattr(config, 'batch_size', 1)
-            grad_accumulation_steps = getattr(config, 'grad_accumulation_steps', 2)
-            beta = getattr(config, 'beta', 0.1)
-        else:
-            # 默认值
-            learning_rate = 5e-6
-            max_steps = 50
-            batch_size = 1
-            grad_accumulation_steps = 2
-            beta = 0.1
+        # 强制要求配置，确保参数一致性
+        if config is None:
+            raise ValueError(
+                "DPO training config is required. "
+                "Please provide a valid DPOTrainingConfig object."
+            )
+
+        # 直接使用配置值，不提供默认值
+        learning_rate = config.learning_rate
+        max_steps = config.max_steps
+        batch_size = config.batch_size
+        grad_accumulation_steps = config.grad_accumulation_steps
+        beta = config.beta
         
         # 创建DPO配置
         dpo_config = self.create_dpo_config(

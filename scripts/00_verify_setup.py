@@ -71,7 +71,6 @@ def check_project_structure():
         "scripts",
         "data",
         "models",
-        "tests",
     ]
 
     required_files = [

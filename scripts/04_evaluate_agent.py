@@ -38,8 +38,12 @@ def evaluate_agent(agent: AgentModel, task_list: list, num_episodes: int) -> flo
             if "action:" in completion:
                 try:
                     last_action = completion.split("action:")[-1].strip()
-                except:
-                    pass
+                except (IndexError, AttributeError) as e:
+                    print(f"[警告] 评估时动作提取失败: {e}")
+                    last_action = None
+                except Exception as e:
+                    print(f"[错误] 评估时动作提取发生未预期错误: {e}")
+                    last_action = None
 
             if last_action:
                 _, reward, terminated, _, _ = env.step(last_action)

@@ -237,8 +237,13 @@ class MLflowLogger:
             
             print("[性能] 初始系统性能状态已记录")
             
+        except (ImportError, AttributeError) as e:
+            print(f"[警告] 系统性能监控库不可用: {e}")
+        except (OSError, PermissionError) as e:
+            print(f"[警告] 无法访问系统性能信息: {e}")
         except Exception as e:
-            print(f"[警告] 无法记录系统性能信息: {e}")
+            print(f"[警告] 记录系统性能信息时发生未预期错误: {e}")
+            print(f"[调试] 错误类型: {type(e).__name__}")
     
     def _log_final_performance(self):
         """记录最终系统性能状态。"""
@@ -262,8 +267,13 @@ class MLflowLogger:
             
             print("[性能] 最终系统性能状态已记录")
             
+        except (ImportError, AttributeError) as e:
+            print(f"[警告] 性能监控库不可用: {e}")
+        except (OSError, PermissionError) as e:
+            print(f"[警告] 无法访问系统资源信息: {e}")
         except Exception as e:
-            print(f"[警告] 无法记录最终性能信息: {e}")
+            print(f"[警告] 记录最终性能信息时发生未预期错误: {e}")
+            print(f"[调试] 错误类型: {type(e).__name__}")
     
     def start_stage_timer(self, stage_name: str):
         """开始记录某阶段的执行时间。"""
