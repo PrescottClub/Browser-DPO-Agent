@@ -25,8 +25,8 @@ class LanguageSwitcher:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent
         self.readme_path = self.project_root / "README.md"
-        self.readme_zh_path = self.project_root / "README_ZH.md"
-        self.readme_en_path = self.project_root / "README_EN.md"
+        self.readme_zh_path = self.project_root / "docs" / "README_ZH.md"
+        self.readme_en_path = self.project_root / "docs" / "README_EN.md"
         
         # 语言标识符
         self.zh_identifier = "[🇨🇳 中文](README.md)"
@@ -124,8 +124,8 @@ class LanguageSwitcher:
         # 可用版本
         print("\n📁 可用版本:")
         print(f"   README.md: {'✅ 存在' if self.readme_path.exists() else '❌ 不存在'}")
-        print(f"   README_ZH.md: {'✅ 存在' if self.readme_zh_path.exists() else '❌ 不存在'}")
-        print(f"   README_EN.md: {'✅ 存在' if self.readme_en_path.exists() else '❌ 不存在'}")
+        print(f"   docs/README_ZH.md: {'✅ 存在' if self.readme_zh_path.exists() else '❌ 不存在'}")
+        print(f"   docs/README_EN.md: {'✅ 存在' if self.readme_en_path.exists() else '❌ 不存在'}")
         
         # 使用说明
         print("\n🔧 切换命令:")

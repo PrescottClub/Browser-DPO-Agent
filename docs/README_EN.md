@@ -7,11 +7,11 @@
 [![Transformers](https://img.shields.io/badge/🤗%20Transformers-4.41.2+-yellow.svg)](https://huggingface.co/transformers/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-**🚀 Production-Grade Browser Automation Agent | End-to-End Training Framework Based on Direct Preference Optimization (DPO)**
+🚀 Production-Grade Browser Automation Agent | End-to-End Training Framework Based on Direct Preference Optimization (DPO)
 
 *Enabling AI agents to learn "human preferences" for complex web environment operations*
 
-[🇨🇳 中文](README.md) | [🇺🇸 English](README_EN.md)
+[🇨🇳 中文](../README.md) | [🇺🇸 English](README_EN.md)
 
 </div>
 
@@ -200,13 +200,13 @@ python scripts/switch_language.py --status
 
 ### 🖱️ Quick Switch
 You can also use shortcut scripts:
-- **Switch to Chinese**: Double-click `switch_to_chinese.bat`
-- **Switch to English**: Double-click `switch_to_english.bat`
+- Switch to Chinese: Double-click `tools/switch_to_chinese.bat`
+- Switch to English: Double-click `tools/switch_to_english.bat`
 
 ### 📁 Language File Description
 - `README.md` - Currently displayed README file
-- `README_ZH.md` - Chinese version backup
-- `README_EN.md` - English version backup
+- `docs/README_ZH.md` - Chinese version backup
+- `docs/README_EN.md` - English version backup
 
 ## 🔧 System Verification
 
